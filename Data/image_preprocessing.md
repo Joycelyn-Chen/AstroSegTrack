@@ -7,3 +7,6 @@
 
 ## Convert HDF5 to PNG
 - use `Data/hdf5topng.py --input_dir input_path --output_dir output_path`
+
+## Thresholding + Connected Component
+- use `Data/threshold_connected.py` to perform thresholding cutoff and link the same group together as a label with connected component with opencv.
