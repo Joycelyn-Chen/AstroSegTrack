@@ -1,9 +1,9 @@
-import matplotlib.pyplot as plt
 import yt
-import numpy as np
 import os
-import glob
-from astropy import units as u
+# import matplotlib.pyplot as plt
+# import numpy as np
+# import glob
+# from astropy import units as u
 
 root_folder = "/Users/joycelynchen/Desktop/UBC/Research/Data/synthetic_data/sn34"
 data_dir = "/Users/joycelynchen/Desktop/UBC/Research/Data/synthetic_data/sn34/img"
@@ -33,7 +33,4 @@ for i in range(lower_limit, upper_limit + 1, offset):
         f.hide_colorbar()
 #         f.show()
         f.save(os.path.join(data_dir, f'{filename}_z{j + (total_slice / 2)}.jpg'))
-        # print(os.path.join(data_dir, f'{filename}_z{j + (total_slice / 2)}.jpg'))
-#     f.hide_axes()
-#     f.hide_colorbar()
-#     f.save(os.path.join(data_dir, f'{filename}.jpg')) # can be png, pdf, etc
+        
