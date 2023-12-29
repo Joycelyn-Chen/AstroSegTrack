@@ -15,7 +15,7 @@ def find_connected_components(binary_image):
     return cv2.connectedComponentsWithStats(binary_image)
 
 def SN_in_dataframe(dataframe, timestamp, x, y, z, tol_error = 10):
-    cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]         # + 1 if returns nothing
+    cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]        
     result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error) & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))]
     
     print(f"Found {len(result_df)} cases. \n")
@@ -54,7 +54,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
         # DEBUG
         print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
 
-        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
+        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 30):     
             # it is a new SN case
             # construct a new profile for the SN case
             mask = labels == i
@@ -62,7 +62,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
 
             # then it should save the mask to the mask folder
             mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{i}", str(timestamp)))
-            mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
+            mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     
             cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
         
 
