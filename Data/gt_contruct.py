@@ -56,7 +56,8 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
         print("Processing 1st image...")
         print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
 
-        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
+        #if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
+        if True:
             # it is a new SN case
             # construct a new profile for the SN case
             mask = labels == i
@@ -66,26 +67,29 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
             mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{i}", str(timestamp)))
             mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
             cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
+            
+            # DEBUG
+            break
 
 
 
     # Process subsequent slices
-    for image_path in image_paths[1:]:
-        image = read_image_grayscale(image_path)
-        binary_image = apply_otsus_thresholding(image)
-        num_labels, labels, stats, centroids = find_connected_components(binary_image)
+    # for image_path in image_paths[1:]:
+    #     image = read_image_grayscale(image_path)
+    #     binary_image = apply_otsus_thresholding(image)
+    #     num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
-        for i in range(1, num_labels):
-            current_mask = labels == i
-            for j, candidate_mask in enumerate(mask_candidates):
-                iou = compute_iou(current_mask, candidate_mask)
-                if iou >= 0.8:
-                    # Update mask candidate and output current mask
-                    mask_candidates[j] = current_mask
+    #     for i in range(1, num_labels):
+    #         current_mask = labels == i
+    #         for j, candidate_mask in enumerate(mask_candidates):
+    #             iou = compute_iou(current_mask, candidate_mask)
+    #             if iou >= 0.8:
+    #                 # Update mask candidate and output current mask
+    #                 mask_candidates[j] = current_mask
 
-                    mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", str(timestamp)))
-                    mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
-                    cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+    #                 mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", str(timestamp)))
+    #                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
+    #                 cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                     
 
 # convert seconds to Megayears
