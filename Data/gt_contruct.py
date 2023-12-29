@@ -42,6 +42,10 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     # Process first slice
     first_image = read_image_grayscale(image_paths[0])
     binary_image = apply_otsus_thresholding(first_image)
+
+    #DEBUG
+    cv2.imwrite("tmp_mask.jpg", binary_image * 255)
+
     num_labels, labels, stats, centroids = find_connected_components(binary_image)
     
     for i in range(1, num_labels):     
