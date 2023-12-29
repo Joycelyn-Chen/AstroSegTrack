@@ -42,7 +42,9 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     binary_image = apply_otsus_thresholding(first_image)
     num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
-
+    # DEBUG
+    print(f"Found {num_labels} labels in the first image.")
+    
     for i in range(1, num_labels):     
         x, y = centroids[i]
         z = -400
@@ -53,7 +55,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
             mask_candidates.append(mask)
 
             # then it should save the mask to the mask folder
-            mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{i}", timestamp))
+            mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{i}", str(timestamp)))
             mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
             cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
 
@@ -73,7 +75,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
                     # Update mask candidate and output current mask
                     mask_candidates[j] = current_mask
 
-                    mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", timestamp))
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", str(timestamp)))
                     mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
                     cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                     
@@ -151,7 +153,7 @@ all_data_df = read_dat_log(dat_file_root, dataset_root)
 
 
 for timestamp in timestamps:
-    image_paths = glob.glob(os.path.join(dataset_root, 'raw_img', timestamp, '*.jpg')) # List of image paths for this timestamp
+    image_paths = glob.glob(os.path.join(dataset_root, 'raw_img', str(timestamp), '*.jpg')) # List of image paths for this timestamp
 
     # sort the image paths accoording to their slice number
     slice_image_paths = {}
