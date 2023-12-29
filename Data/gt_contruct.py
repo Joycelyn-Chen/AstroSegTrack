@@ -50,7 +50,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
 
         # DEBUG
         print("Processing 1st image...")
-        print(f"Component {i}: ")
+        print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
 
         if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 10):     
             # it is a new SN case
