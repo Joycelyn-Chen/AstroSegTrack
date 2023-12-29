@@ -18,9 +18,9 @@ def SN_in_dataframe(dataframe, timestamp, x, y, tol_error = 10):
     cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]        
     result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error)]       #  & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))
     
-    print(f"Found {len(result_df)} cases. \n")
-
     if(len(result_df) > 0):
+        # DEBUG
+        print(f"Found {len(result_df)} cases. \n")
         return True
     return False
 
@@ -48,6 +48,10 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     print("Processing 1st image...")
 
     for i in range(2, num_labels):     
+        area = stats[i, cv2.CC_STAT_AREA]
+        if area < 1000:
+            continue
+        
         x, y = centroids[i]
         # z = -400
 
