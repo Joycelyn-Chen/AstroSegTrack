@@ -15,7 +15,7 @@ def find_connected_components(binary_image):
     return cv2.connectedComponentsWithStats(binary_image)
 
 def SN_in_dataframe(dataframe, timestamp, x, y, z, tol_error = 10):
-    cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp)]         # + 1 if returns nothing
+    cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]         # + 1 if returns nothing
     result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error) & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))]
     
     print(result_df)
@@ -52,7 +52,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
         print("Processing 1st image...")
         print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
 
-        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 10):     
+        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
             # it is a new SN case
             # construct a new profile for the SN case
             mask = labels == i
