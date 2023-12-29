@@ -18,7 +18,7 @@ def SN_in_dataframe(dataframe, timestamp, x, y, z, tol_error = 10):
     cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]         # + 1 if returns nothing
     result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error) & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))]
     
-    print(result_df)
+    print(f"Found {len(result_df)} cases. \n")
 
     if(len(result_df) > 0):
         return True
@@ -44,12 +44,14 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     binary_image = apply_otsus_thresholding(first_image)
     num_labels, labels, stats, centroids = find_connected_components(binary_image)
     
+    # DEBUG
+    print("Processing 1st image...")
+
     for i in range(2, num_labels):     
         x, y = centroids[i]
         z = -400
 
         # DEBUG
-        print("Processing 1st image...")
         print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
 
         if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
