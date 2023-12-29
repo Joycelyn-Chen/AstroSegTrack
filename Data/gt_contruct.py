@@ -14,9 +14,9 @@ def apply_otsus_thresholding(image):
 def find_connected_components(binary_image):
     return cv2.connectedComponentsWithStats(binary_image)
 
-def SN_in_dataframe(dataframe, timestamp, x, y, z, tol_error = 10):
+def SN_in_dataframe(dataframe, timestamp, x, y, tol_error = 10):
     cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]        
-    result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error) & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))]
+    result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error)]       #  & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))
     
     print(f"Found {len(result_df)} cases. \n")
 
@@ -49,12 +49,12 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
 
     for i in range(2, num_labels):     
         x, y = centroids[i]
-        z = -400
+        # z = -400
 
         # DEBUG
-        print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
+        print(f"Component {i}: ({pixel2pc(x - 400)}, {pixel2pc(y - 400)})")
 
-        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 30):     
+        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x - 400), pixel2pc(y - 400),  tol_error = 30):     
             # it is a new SN case
             # construct a new profile for the SN case
             mask = labels == i
