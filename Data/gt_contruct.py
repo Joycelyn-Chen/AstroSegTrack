@@ -52,8 +52,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
         print("Processing 1st image...")
         print(f"Component {i}: ({pixel2pc(x)}, {pixel2pc(y)})")
 
-        #if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
-        if True:
+        if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 20):     
             # it is a new SN case
             # construct a new profile for the SN case
             mask = labels == i
@@ -63,10 +62,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
             mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{i}", str(timestamp)))
             mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
             cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
-            
-            # DEBUG
-            break
-
+        
 
 
     # Process subsequent slices
