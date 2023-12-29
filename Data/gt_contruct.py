@@ -9,7 +9,7 @@ def read_image_grayscale(image_path):
 
 def apply_otsus_thresholding(image):
     _, binary_image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return binary_image
+    return cv2.bitwise_not(binary_image)
 
 def find_connected_components(binary_image):
     return cv2.connectedComponentsWithStats(binary_image)
@@ -42,13 +42,9 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     # Process first slice
     first_image = read_image_grayscale(image_paths[0])
     binary_image = apply_otsus_thresholding(first_image)
-
-    #DEBUG
-    cv2.imwrite("tmp_mask.jpg", binary_image * 255)
-
     num_labels, labels, stats, centroids = find_connected_components(binary_image)
     
-    for i in range(1, num_labels):     
+    for i in range(2, num_labels):     
         x, y = centroids[i]
         z = -400
 
