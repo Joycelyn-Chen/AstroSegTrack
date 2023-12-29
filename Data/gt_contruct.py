@@ -95,7 +95,7 @@ def filter_data(df, range_coord):
 
 
 def read_dat_log(dat_file_root, dataset_root):
-    dat_files = glob(os.path.join(dataset_root, dat_file_root, "*.dat"))
+    dat_files = glob.glob(os.path.join(dataset_root, dat_file_root, "*.dat"))
 
     # Initialize an empty DataFrame
     all_data = pd.DataFrame()
