@@ -18,6 +18,8 @@ def SN_in_dataframe(dataframe, timestamp, x, y, z, tol_error = 10):
     cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp)]         # + 1 if returns nothing
     result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error) & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))]
     
+    print(result_df)
+
     if(len(result_df) > 0):
         return True
     return False
@@ -41,13 +43,15 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     first_image = read_image_grayscale(image_paths[0])
     binary_image = apply_otsus_thresholding(first_image)
     num_labels, labels, stats, centroids = find_connected_components(binary_image)
-
-    # DEBUG
-    print(f"Found {num_labels} labels in the first image.")
     
     for i in range(1, num_labels):     
         x, y = centroids[i]
         z = -400
+
+        # DEBUG
+        print("Processing 1st image...")
+        print(f"Component {i}: ")
+
         if SN_in_dataframe(dataframe, timestamp, pixel2pc(x), pixel2pc(y), z,  tol_error = 10):     
             # it is a new SN case
             # construct a new profile for the SN case
