@@ -34,7 +34,7 @@ def ensure_dir(path):
         os.makedirs(path)
     return path
 
-def process_timestamp(timestamp, image_paths, dataframe):
+def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
     mask_candidates = []
 
     # Process first slice
@@ -53,8 +53,8 @@ def process_timestamp(timestamp, image_paths, dataframe):
             mask_candidates.append(mask)
 
             # then it should save the mask to the mask folder
-            mask_dir_root = ensure_dir(os.path.join(f"SN_{i}", timestamp))
-            mask_name = image_paths[0].split('/')[-1].split('.')[-2]     # -2 or -3
+            mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{i}", timestamp))
+            mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
             cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
 
 
@@ -73,8 +73,8 @@ def process_timestamp(timestamp, image_paths, dataframe):
                     # Update mask candidate and output current mask
                     mask_candidates[j] = current_mask
 
-                    mask_dir_root = ensure_dir(os.path.join(f"SN_{j}", timestamp))
-                    mask_name = image_path.split('/')[-1].split('.')[-2]     # -2 or -3
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", timestamp))
+                    mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
                     cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                     
 
@@ -94,8 +94,8 @@ def filter_data(df, range_coord):
     return df[(df['posx_pc'] > range_coord[0]) & (df['posx_pc'] < range_coord[0] + range_coord[2]) & (df['posy_pc'] > range_coord[1]) & (df['posy_pc'] < range_coord[1] + range_coord[3]) & (df['posz_pc'] > range_coord[4] & (df['posz_pc'] < range_coord[5]))]
 
 
-def read_dat_log(dat_file_root = "SNfeedback"):
-    dat_files = glob(os.path.join(dat_file_root, "*.dat"))
+def read_dat_log(dat_file_root, dataset_root):
+    dat_files = glob(os.path.join(dataset_root, dat_file_root, "*.dat"))
 
     # Initialize an empty DataFrame
     all_data = pd.DataFrame()
@@ -141,27 +141,27 @@ end_time = 201
 timestamps = range(start_time, end_time)  # List of timestamps
 
 # File paths parameters
-# TODO: change the path to the correct one (best if it's relative path)
-dataset_root = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/200_210/"
+# dataset_root = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/200_210/"
+dataset_root = "../Dataset"
 dat_file_root = "SNfeedback"
 
 
 # Read and process the .dat file logs
-all_data_df = read_dat_log(dat_file_root)
+all_data_df = read_dat_log(dat_file_root, dataset_root)
 
 
 for timestamp in timestamps:
-    image_paths = glob.glob(os.path.join(dataset_root, timestamp, 'raw_img', '*.jpg')) # List of image paths for this timestamp
+    image_paths = glob.glob(os.path.join(dataset_root, 'raw_img', timestamp, '*.jpg')) # List of image paths for this timestamp
 
     # sort the image paths accoording to their slice number
-    time_image_paths = {}
+    slice_image_paths = {}
     for path in image_paths:
         time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])
-        time_image_paths[time] = path
+        slice_image_paths[time] = path
     
     image_paths_sorted = []
-    for key in sorted(time_image_paths):
-        image_paths_sorted.append(time_image_paths[key])
+    for key in sorted(slice_image_paths):
+        image_paths_sorted.append(slice_image_paths[key])
 
     
-    process_timestamp(timestamp, image_paths_sorted, all_data_df)
+    process_timestamp(timestamp, image_paths_sorted, all_data_df, dataset_root)
