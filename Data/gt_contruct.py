@@ -81,7 +81,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
             current_mask = labels == i
             for j, candidate_mask in enumerate(mask_candidates):
                 iou = compute_iou(current_mask, candidate_mask)
-                if iou >= 0.8:
+                if iou >= 0.6:
                     # Update mask candidate and output current mask
                     mask_candidates[j] = current_mask
 
