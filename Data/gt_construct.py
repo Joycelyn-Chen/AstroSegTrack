@@ -70,7 +70,6 @@ def trace_current_timestamp(timestamp, image_paths, dataframe, dataset_root):
             cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
         
 
-
     # Process subsequent slices
     for image_path in image_paths[1:]:
         image = read_image_grayscale(image_path)
@@ -88,18 +87,41 @@ def trace_current_timestamp(timestamp, image_paths, dataframe, dataset_root):
                     mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", str(timestamp)))
                     mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
                     cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+            
                     
-def associate_subsequent_timestamp(start_yr, end_yr, dataset_root):
+def associate_subsequent_timestamp(timestamp, start_yr, end_yr, dataset_root):
     # loop through all slices in the mask folder
+    img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
+    image_paths = glob.glob(os.path.join(dataset_root, 'SN_*', str(timestamp), '*.jpg')) # List of image paths for this timestamp
+    for image_path in image_paths:
+        SN_num = int(image_path.split("/")[-3].split("_")[-1])
+        slice_num = image_path.split("/")[-1].split(".")[-2].split("z")[-1]
 
-    # find cooresponding slice in the raw img folder
+        # read the pivot mask as binary image
+        mask_binary = read_image_grayscale(image_path) / 255
 
-    # otsu and connected component the new slice
+        # find cooresponding slice in the raw img folder
+        for time in range(start_yr, end_yr):
+            next_raw_img_path = os.path.join(dataset_root, 'raw_img', time)
 
-    # find the component with most similar iou
+            # otsu and connected component the new slice
+            image = read_image_grayscale(next_raw_img_path)
+            binary_image = apply_otsus_thresholding(image)
+            num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
-    # output the mask for this timestamp
-    pass
+
+            # find the component with the most similar iou
+            for i in range(num_labels):
+                current_mask = labels == i
+                iou = compute_iou(current_mask, mask_binary)
+                if iou >= 0.5:
+                    # output the mask for this timestamp
+                    mask_binary = current_mask
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{SN_num}", str(time)))
+                    mask_name = f"{img_prefix}{time}_z{slice_num}.jpg"
+                    cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+                    break
+
 
 # convert seconds to Megayears
 def seconds_to_megayears(seconds):
@@ -168,9 +190,9 @@ def trace_single_SN_case(start_time, end_time, posx_pc, posy_pc):
     pass
 
 def main():
-    start_time = 200
-    end_time = 201
-    timestamps = range(start_time, end_time)  # List of timestamps
+    start_Myr = 200
+    end_Myr = 201
+    timestamps = range(start_Myr, end_Myr)  # List of timestamps
 
     # File paths parameters
     # dataset_root = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/200_210/"
@@ -198,7 +220,7 @@ def main():
         
         trace_current_timestamp(timestamp, image_paths_sorted, all_data_df, dataset_root)
         # associate with all later timestamp
-        associate_subsequent_timestamp(start_yr, end_yr, dataset_root)
+        associate_subsequent_timestamp(timestamp, timestamp + 1, end_Myr, dataset_root)
 
 
         # trace_single_SN_case(start_time, end_time, posx_pc, posy_pc)
