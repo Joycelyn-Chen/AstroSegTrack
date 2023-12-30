@@ -15,7 +15,7 @@ def find_connected_components(binary_image):
     return cv2.connectedComponentsWithStats(binary_image)
 
 def SN_in_dataframe(dataframe, timestamp, x, y, tol_error = 10):
-    cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp) & (dataframe['time_Myr'] <= timestamp + 1)]        
+    cropped_df = dataframe[(dataframe['time_Myr'] >= timestamp - 1) & (dataframe['time_Myr'] <= timestamp + 1)]        
     result_df = cropped_df[(cropped_df['posx_pc'] > x - tol_error) & (cropped_df['posx_pc'] < x + tol_error) & (cropped_df['posy_pc'] > y - tol_error) & (cropped_df['posy_pc'] < y + tol_error)]       #  & (cropped_df['posz_pc'] > z - tol_error & (cropped_df['posz_pc'] < z + tol_error))
     
     if(len(result_df) > 0):
@@ -72,22 +72,22 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
 
 
     # Process subsequent slices
-    # for image_path in image_paths[1:]:
-    #     image = read_image_grayscale(image_path)
-    #     binary_image = apply_otsus_thresholding(image)
-    #     num_labels, labels, stats, centroids = find_connected_components(binary_image)
+    for image_path in image_paths[1:]:
+        image = read_image_grayscale(image_path)
+        binary_image = apply_otsus_thresholding(image)
+        num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
-    #     for i in range(1, num_labels):
-    #         current_mask = labels == i
-    #         for j, candidate_mask in enumerate(mask_candidates):
-    #             iou = compute_iou(current_mask, candidate_mask)
-    #             if iou >= 0.8:
-    #                 # Update mask candidate and output current mask
-    #                 mask_candidates[j] = current_mask
+        for i in range(1, num_labels):
+            current_mask = labels == i
+            for j, candidate_mask in enumerate(mask_candidates):
+                iou = compute_iou(current_mask, candidate_mask)
+                if iou >= 0.8:
+                    # Update mask candidate and output current mask
+                    mask_candidates[j] = current_mask
 
-    #                 mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", str(timestamp)))
-    #                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
-    #                 cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, f"SN_{j}", str(timestamp)))
+                    mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
+                    cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                     
 
 # convert seconds to Megayears
@@ -147,7 +147,15 @@ def read_dat_log(dat_file_root, dataset_root):
     return all_data
 
 
+def identify_SN_cases(df, start_Myr, end_Myr):
+    cropped_df = df[(df['time_Myr'] >= start_Myr) & (df['time_Myr'] <= end_Myr + 1)]
+    return cropped_df.groupby(['posx_pc', 'posy_pc', 'posz_pc']).first().reset_index()
+
                     
+def trace_single_SN_case(start_time, end_time, posx_pc, posy_pc):
+
+    pass
+
 start_time = 200
 end_time = 201
 timestamps = range(start_time, end_time)  # List of timestamps
@@ -177,3 +185,5 @@ for timestamp in timestamps:
 
     
     process_timestamp(timestamp, image_paths_sorted, all_data_df, dataset_root)
+
+    # trace_single_SN_case(start_time, end_time, posx_pc, posy_pc)
