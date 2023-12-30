@@ -9,4 +9,4 @@
 - use `Data/hdf5topng.py --input_dir input_path --output_dir output_path`
 
 ## Thresholding + Connected Component
-- use `Data/threshold_connected.py` to perform thresholding cutoff and link the same group together as a label with connected component with opencv.
+- use `Data/gt_construct.py` to perform thresholding cutoff and link the same group together as a label with connected component with opencv, and construct the ground truth dataset for the video object segmentation model.

@@ -36,7 +36,7 @@ def ensure_dir(path):
         os.makedirs(path)
     return path
 
-def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
+def trace_current_timestamp(timestamp, image_paths, dataframe, dataset_root):
     mask_candidates = []
 
     # Process first slice
@@ -81,7 +81,7 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
             current_mask = labels == i
             for j, candidate_mask in enumerate(mask_candidates):
                 iou = compute_iou(current_mask, candidate_mask)
-                if iou >= 0.6:
+                if iou >= 0.5:
                     # Update mask candidate and output current mask
                     mask_candidates[j] = current_mask
 
@@ -89,6 +89,17 @@ def process_timestamp(timestamp, image_paths, dataframe, dataset_root):
                     mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
                     cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                     
+def associate_subsequent_timestamp(start_yr, end_yr, dataset_root):
+    # loop through all slices in the mask folder
+
+    # find cooresponding slice in the raw img folder
+
+    # otsu and connected component the new slice
+
+    # find the component with most similar iou
+
+    # output the mask for this timestamp
+    pass
 
 # convert seconds to Megayears
 def seconds_to_megayears(seconds):
@@ -156,34 +167,41 @@ def trace_single_SN_case(start_time, end_time, posx_pc, posy_pc):
 
     pass
 
-start_time = 200
-end_time = 201
-timestamps = range(start_time, end_time)  # List of timestamps
+def main():
+    start_time = 200
+    end_time = 201
+    timestamps = range(start_time, end_time)  # List of timestamps
 
-# File paths parameters
-# dataset_root = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/200_210/"
-dataset_root = "../Dataset"
-dat_file_root = "SNfeedback"
-
-
-# Read and process the .dat file logs
-all_data_df = read_dat_log(dat_file_root, dataset_root)
+    # File paths parameters
+    # dataset_root = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/200_210/"
+    dataset_root = "../Dataset"
+    dat_file_root = "SNfeedback"
 
 
-for timestamp in timestamps:
-    image_paths = glob.glob(os.path.join(dataset_root, 'raw_img', str(timestamp), '*.jpg')) # List of image paths for this timestamp
+    # Read and process the .dat file logs
+    all_data_df = read_dat_log(dat_file_root, dataset_root)
 
-    # sort the image paths accoording to their slice number
-    slice_image_paths = {}
-    for path in image_paths:
-        time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])
-        slice_image_paths[time] = path
-    
-    image_paths_sorted = []
-    for key in sorted(slice_image_paths):
-        image_paths_sorted.append(slice_image_paths[key])
 
-    
-    process_timestamp(timestamp, image_paths_sorted, all_data_df, dataset_root)
+    for timestamp in timestamps:
+        image_paths = glob.glob(os.path.join(dataset_root, 'raw_img', str(timestamp), '*.jpg')) # List of image paths for this timestamp
 
-    # trace_single_SN_case(start_time, end_time, posx_pc, posy_pc)
+        # sort the image paths accoording to their slice number
+        slice_image_paths = {}
+        for path in image_paths:
+            time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])
+            slice_image_paths[time] = path
+        
+        image_paths_sorted = []
+        for key in sorted(slice_image_paths):
+            image_paths_sorted.append(slice_image_paths[key])
+
+        
+        trace_current_timestamp(timestamp, image_paths_sorted, all_data_df, dataset_root)
+        # associate with all later timestamp
+        associate_subsequent_timestamp(start_yr, end_yr, dataset_root)
+
+
+        # trace_single_SN_case(start_time, end_time, posx_pc, posy_pc)
+
+if __name__ == '__main__':
+    main()
