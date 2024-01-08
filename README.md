@@ -9,7 +9,7 @@
 
 ---
 ## ToDO
-- [ ] Test `gt_construct.py`, see if it associate all subsequent timestamp
 - [ ] Modify `hdf5topng.py` to take input and output paths as argument
+- [ ] and ignore cases with 1 image only
 - [ ] generate the GT dataset  
 
