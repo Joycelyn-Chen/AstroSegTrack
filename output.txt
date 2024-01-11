@@ -1,153 +1,45 @@
-
-
-Start tracing through time 200
-Outputting to file ../Dataset/SN_cases_0102/SN_20015
-Outputting to file ../Dataset/SN_cases_0102/SN_20024
-Outputting to file ../Dataset/SN_cases_0102/SN_20035
-Done tracing through time 200
-Start associating with the subsequent timestamp
-Done associating for timestamp 200
-
-
-
-Start tracing through time 201
-Outputting to file ../Dataset/SN_cases_0102/SN_20115
-Outputting to file ../Dataset/SN_cases_0102/SN_20139
-Done tracing through time 201
-Start associating with the subsequent timestamp
-Done associating for timestamp 201
-
-
-
-Start tracing through time 202
-Outputting to file ../Dataset/SN_cases_0102/SN_20218
-Outputting to file ../Dataset/SN_cases_0102/SN_20235
-Outputting to file ../Dataset/SN_cases_0102/SN_20252
-Outputting to file ../Dataset/SN_cases_0102/SN_20254
-Done tracing through time 202
-Start associating with the subsequent timestamp
-Done associating for timestamp 202
-
-
-
-Start tracing through time 203
-Outputting to file ../Dataset/SN_cases_0102/SN_20321
-Outputting to file ../Dataset/SN_cases_0102/SN_20333
-Outputting to file ../Dataset/SN_cases_0102/SN_20352
-Outputting to file ../Dataset/SN_cases_0102/SN_20356
-Done tracing through time 203
-Start associating with the subsequent timestamp
-Done associating for timestamp 203
-
-
-
-Start tracing through time 204
-Outputting to file ../Dataset/SN_cases_0102/SN_20420
-Outputting to file ../Dataset/SN_cases_0102/SN_20424
-Outputting to file ../Dataset/SN_cases_0102/SN_20448
-Done tracing through time 204
-Start associating with the subsequent timestamp
-Done associating for timestamp 204
-
-
-
-Start tracing through time 205
-Outputting to file ../Dataset/SN_cases_0102/SN_20518
-Outputting to file ../Dataset/SN_cases_0102/SN_20521
-Outputting to file ../Dataset/SN_cases_0102/SN_20556
-Done tracing through time 205
-Start associating with the subsequent timestamp
-Done associating for timestamp 205
-
-
-
-Start tracing through time 206
-Outputting to file ../Dataset/SN_cases_0102/SN_20615
-Outputting to file ../Dataset/SN_cases_0102/SN_20638
-Outputting to file ../Dataset/SN_cases_0102/SN_20646
-Outputting to file ../Dataset/SN_cases_0102/SN_20651
-Done tracing through time 206
-Start associating with the subsequent timestamp
-Done associating for timestamp 206
-
-
-
-Start tracing through time 207
-Outputting to file ../Dataset/SN_cases_0102/SN_20715
-Outputting to file ../Dataset/SN_cases_0102/SN_20737
-Outputting to file ../Dataset/SN_cases_0102/SN_20741
-Outputting to file ../Dataset/SN_cases_0102/SN_20747
-Done tracing through time 207
-Start associating with the subsequent timestamp
-Done associating for timestamp 207
-
-
-
-Start tracing through time 208
-Outputting to file ../Dataset/SN_cases_0102/SN_20824
-Outputting to file ../Dataset/SN_cases_0102/SN_20847
-Outputting to file ../Dataset/SN_cases_0102/SN_20868
-Done tracing through time 208
-Start associating with the subsequent timestamp
-Done associating for timestamp 208
-
-
-
-Start tracing through time 209
-Outputting to file ../Dataset/SN_cases_0102/SN_20919
-Done tracing through time 209
-Start associating with the subsequent timestamp
-Done associating for timestamp 209
-
-
-
-Start tracing through time 210
-Outputting to file ../Dataset/SN_cases_0102/SN_21010
-Outputting to file ../Dataset/SN_cases_0102/SN_21015
-Outputting to file ../Dataset/SN_cases_0102/SN_21032
-Done tracing through time 210
-Start associating with the subsequent timestamp
-Done associating for timestamp 210
-
-
-
-Start tracing through time 211
-Outputting to file ../Dataset/SN_cases_0102/SN_21161
-Outputting to file ../Dataset/SN_cases_0102/SN_21185
-Done tracing through time 211
-Start associating with the subsequent timestamp
-Done associating for timestamp 211
-
-
-
-Start tracing through time 212
-Outputting to file ../Dataset/SN_cases_0102/SN_21216
-Outputting to file ../Dataset/SN_cases_0102/SN_21260
-Outputting to file ../Dataset/SN_cases_0102/SN_21288
-Done tracing through time 212
-Start associating with the subsequent timestamp
-Done associating for timestamp 212
-
-
-
-Start tracing through time 213
-Outputting to file ../Dataset/SN_cases_0102/SN_21314
-Done tracing through time 213
-Start associating with the subsequent timestamp
-Done associating for timestamp 213
-
-
-
-Start tracing through time 214
-Done tracing through time 214
-Start associating with the subsequent timestamp
-Done associating for timestamp 214
-
-
-
-Start tracing through time 215
-Outputting to file ../Dataset/SN_cases_0102/SN_21555
-Done tracing through time 215
-Start associating with the subsequent timestamp
-Done associating for timestamp 215
-
+yt : [INFO     ] 2024-01-11 15:04:48,704 Parameters: current_time              = 6027503856450000.0
+yt : [INFO     ] 2024-01-11 15:04:48,704 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:04:48,705 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:04:48,705 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:04:48,705 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:06:03,206 Parameters: current_time              = 6030671655459382.0
+yt : [INFO     ] 2024-01-11 15:06:03,206 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:06:03,207 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:06:03,207 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:06:03,207 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:07:13,815 Parameters: current_time              = 6033875437957040.0
+yt : [INFO     ] 2024-01-11 15:07:13,815 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:07:13,816 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:07:13,816 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:07:13,816 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:08:23,721 Parameters: current_time              = 6036970904925048.0
+yt : [INFO     ] 2024-01-11 15:08:23,721 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:08:23,721 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:08:23,722 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:08:23,722 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:09:33,082 Parameters: current_time              = 6040176025647864.0
+yt : [INFO     ] 2024-01-11 15:09:33,082 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:09:33,082 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:09:33,083 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:09:33,083 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:10:42,884 Parameters: current_time              = 6043290291336002.0
+yt : [INFO     ] 2024-01-11 15:10:42,884 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:10:42,885 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:10:42,885 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:10:42,885 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:11:52,455 Parameters: current_time              = 6046479403795140.0
+yt : [INFO     ] 2024-01-11 15:11:52,455 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:11:52,455 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:11:52,456 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:11:52,456 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:13:02,164 Parameters: current_time              = 6049650437981840.0
+yt : [INFO     ] 2024-01-11 15:13:02,165 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:13:02,165 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:13:02,165 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:13:02,165 Parameters: cosmological_simulation   = 0
+yt : [INFO     ] 2024-01-11 15:14:11,595 Parameters: current_time              = 6052805052461706.0
+yt : [INFO     ] 2024-01-11 15:14:11,596 Parameters: domain_dimensions         = [  32   32 1280]
+yt : [INFO     ] 2024-01-11 15:14:11,596 Parameters: domain_left_edge          = [-1.54283879e+21 -1.54283879e+21 -6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:14:11,596 Parameters: domain_right_edge         = [1.54283879e+21 1.54283879e+21 6.17135516e+22]
+yt : [INFO     ] 2024-01-11 15:14:11,597 Parameters: cosmological_simulation   = 0
