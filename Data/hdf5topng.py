@@ -39,15 +39,6 @@ def main(args):
             normalizedImg = ((img - np.min(img)) / (np.max(img) - np.min(img)) ) * 255 
 
             cv.imwrite(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{j}.png'), normalizedImg)
-            # plt.imshow(np.log10(obj["flash", "dens"][:,:,j].T[::-1]))
-            # plt.xticks(visible=False)
-            # plt.yticks(visible=False)
-            
-            # img = im.fromarray(np.log10(obj["flash", "dens"][:,:,j].T[::-1])).convert('RGB')
-            # img.save(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{j}.png'))
-            # plt.show(img)
-
-            # plt.savefig(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{j}.png'))
             
             
 if __name__ == "__main__":
@@ -62,6 +53,5 @@ if __name__ == "__main__":
     parser.add_argument("--ylim", help="", type = int)                                         # 1000  
     parser.add_argument("--zlim", help="", type = int)                                         # 1000
 
-    # python Data/hdf5topng.py --input_dir "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original" --output_root_dir "/home/joy0921/Desktop/Dataset/200_360/200_360_png" --file_prefix "sn34_smd132_bx5_pe300_hdf5_plt_cnt_" --start_Myr 200 --end_Myr 210 --offset 1 --xlim 1000 --ylim 1000 --zlim 1000
     args = parser.parse_args()
     main(args)

@@ -21,7 +21,7 @@ def SN_in_dataframe(dataframe, timestamp, SN_num, dataset_root, x, y, tol_error 
     
     if(len(result_df) > 0):
         # Store the .dat log for each SN case
-        txt_path = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{SN_num}"))
+        txt_path = ensure_dir(os.path.join(dataset_root, 'SN_cases_0102', f"SN_{timestamp}{SN_num}"))
         result_df.to_csv(os.path.join(txt_path, f'SNfeedback_{timestamp}{SN_num}.txt'), sep='\t', index=False, encoding='utf-8')
         
         # DEBUG
@@ -62,7 +62,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, dataframe, 
         x, y = centroids[i]
         # z = -400
 
-        if SN_in_dataframe(dataframe, timestamp, i, dataset_root, x - 500, y - 500, tol_error = 30):     
+        if SN_in_dataframe(dataframe, timestamp, i, dataset_root, pixel2pc(x - 400), pixel2pc(y - 400),  tol_error = 30):     
             # it is a new SN case
             # construct a new profile for the SN case
             mask = labels == i
@@ -70,8 +70,8 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, dataframe, 
                 mask_candidates.append(mask)
 
                 # then it should save the mask to the new mask folder
-                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}", str(timestamp)))
-                mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
+                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0102', f"SN_{timestamp}{i}", str(timestamp)))
+                mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     
                 cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
         
 
@@ -91,8 +91,8 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, dataframe, 
                     # Update mask candidate and output current mask
                     mask_candidates[j] = current_mask
 
-                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{j}", str(timestamp)))
-                    mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     # -2 or -3
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0102', f"SN_{timestamp}{j}", str(timestamp)))
+                    mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     # -2 or -3
                     cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
     return mask_candidates
             
@@ -100,7 +100,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, dataframe, 
 def associate_subsequent_timestamp(timestamp, start_yr, end_yr, dataset_root):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
-    image_paths = glob.glob(os.path.join(dataset_root, 'SN_cases_0112', 'SN_*', str(timestamp), '*.png')) # List of image paths for this timestamp
+    image_paths = glob.glob(os.path.join(dataset_root, 'SN_cases_0102', 'SN_*', str(timestamp), '*.jpg')) # List of image paths for this timestamp
     for image_path in image_paths:
         SN_num = int(image_path.split("/")[-3].split("_")[-1])
         slice_num = image_path.split("/")[-1].split(".")[-2].split("z")[-1]
@@ -111,7 +111,7 @@ def associate_subsequent_timestamp(timestamp, start_yr, end_yr, dataset_root):
 
         # find cooresponding slice in the raw img folder
         for time in range(start_yr, end_yr):
-            next_raw_img_path = os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z{slice_num}.png")
+            next_raw_img_path = os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z{slice_num}.jpg")
 
 
             # otsu and connected component the new slice
@@ -126,8 +126,8 @@ def associate_subsequent_timestamp(timestamp, start_yr, end_yr, dataset_root):
                 if compute_iou(current_mask, mask_binary) >= 0.6:
                     # output the mask for this timestamp
                     mask_binary = current_mask
-                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{SN_num}", str(time)))
-                    mask_name = f"{img_prefix}{time}_z{slice_num}.png"
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0102', f"SN_{SN_num}", str(time)))
+                    mask_name = f"{img_prefix}{time}_z{slice_num}.jpg"
                     cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                     break
 
@@ -149,10 +149,8 @@ def filter_data(df, range_coord):
 
 
 def read_dat_log(dat_file_root, dataset_root):
-    # Only 1 log file is enough, cause they're actually copies of each other
-    # dat_files = glob.glob(os.path.join(dataset_root, dat_file_root, "*.dat"))
-    dat_files = [os.path.join(dataset_root, dat_file_root, "SNfeedback.dat")]
-    
+    dat_files = glob.glob(os.path.join(dataset_root, dat_file_root, "*.dat"))
+
     # Initialize an empty DataFrame
     all_data = pd.DataFrame()
 
@@ -176,7 +174,6 @@ def read_dat_log(dat_file_root, dataset_root):
         df['radius'] = pd.to_numeric(df['radius'],errors='coerce')
         df['mass'] = pd.to_numeric(df['mass'],errors='coerce')
         all_data = pd.concat([all_data, df], ignore_index=True)
-        all_data = all_data.drop(df[df['n_tracer'] != 0].index)
 
     # Convert time to Megayears
     all_data['time_Myr'] = seconds_to_megayears(all_data['time'])
@@ -201,7 +198,7 @@ def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
 
     for timestamp in timestamps:
-        image_paths = glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.png')) # List of image paths for this timestamp
+        image_paths = glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.jpg')) # List of image paths for this timestamp
 
         # sort the image paths accoording to their slice number
         slice_image_paths = {}
@@ -233,8 +230,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start_Myr", help="The starting timestamp for the dataset", type = int)             # 200
-    parser.add_argument("--end_Myr", help="The ending timestamp for the dataset", type = int)               # 219
+    parser.add_argument("--start_Myr", help="The starting timestamp for the dataset")             # 200
+    parser.add_argument("--end_Myr", help="The ending timestamp for the dataset")               # 219
     parser.add_argument("--dataset_root", help="The root directory to the dataset")          # "../Dataset"
     parser.add_argument("--dat_file_root", help="The root directory to the SNfeedback files")         # "SNfeedback"
 
