@@ -5,6 +5,8 @@ import glob
 import os
 import argparse
 
+low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
+
 def read_image_grayscale(image_path):
     return cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
@@ -44,35 +46,69 @@ def ensure_dir(path):
 def in_mask_candidates(mask_candidates, mask):
     for mask_candidate in mask_candidates:
         iou = compute_iou(mask, mask_candidate)
-        if iou >= 0.6:
+        if iou >= 0.6:      # all mask should not even overlap with each other, so 60% overlapped is a very high threshold
             return True
     return False
 
-def trace_current_timestamp(mask_candidates, timestamp, image_paths, dataframe, dataset_root):
-    # Process first slice
-    first_image = read_image_grayscale(image_paths[0])
-    binary_image = apply_otsus_thresholding(first_image)
-    num_labels, labels, stats, centroids = find_connected_components(binary_image)
+# filter the DataFrame
+def filter_data(df, range_coord):
+    return df[(df['posx_pc'] > range_coord[0]) & (df['posx_pc'] < range_coord[0] + range_coord[2]) & (df['posy_pc'] > range_coord[1]) & (df['posy_pc'] < range_coord[1] + range_coord[3]) & (df['posz_pc'] > range_coord[4]) & (df['posz_pc'] < range_coord[5])]
 
-    for i in range(2, num_labels):     
-        area = stats[i, cv2.CC_STAT_AREA]
-        if area < 1000:
-            continue
-        
-        x, y = centroids[i]
-        # z = -400
 
-        if SN_in_dataframe(dataframe, timestamp, i, dataset_root, x - 500, y - 500, tol_error = 30):     
-            # it is a new SN case
-            # construct a new profile for the SN case
-            mask = labels == i
-            if not in_mask_candidates(mask_candidates, mask):
-                mask_candidates.append(mask)
+def within_range(min, max, target):
+    if min < target and max > target:
+        return True
+    return False
 
-                # then it should save the mask to the new mask folder
-                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}", str(timestamp)))
-                mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
-                cv2.imwrite(os.path.join(mask_dir_root, mask_name), mask * 255)
+
+# see if the SN center is within the bubble bounding box region
+def SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
+    posx_pc = posx_pc + 500
+    posy_pc = posy_pc + 500
+
+    if within_range(x1, x1 + w, posx_pc) and within_range(y1, y1 + h, posy_pc):
+        return True
+    return False
+
+
+def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, dataset_root):
+    # filter out all the SN events
+    filtered_data = filter_data(all_data[(all_data['time_Myr'] >= timestamp - 1) & (all_data['time_Myr'] <= timestamp)],
+                            (low_x0, low_y0, low_w, low_h, bottom_z, top_z))
+
+    for SN_num in range(filtered_data.shape[0]):
+        posx_pc = int(filtered_data.iloc[SN_num]["posx_pc"])
+        posy_pc = int(filtered_data.iloc[SN_num]["posy_pc"])
+        posz_pc = int(filtered_data.iloc[SN_num]["posz_pc"])
+
+        anchor_img = read_image_grayscale(image_paths[posz_pc + 500])
+        binary_image = apply_otsus_thresholding(anchor_img)
+        num_labels, labels, stats, centroids = find_connected_components(binary_image)
+
+        for i in range(2, num_labels):     
+            area = stats[i, cv2.CC_STAT_AREA]
+            if area < 1000:
+                continue
+            
+            # x, y = centroids[i]
+
+            x1 = stats[i, cv2.CC_STAT_LEFT] 
+            y1 = stats[i, cv2.CC_STAT_TOP] 
+            w = stats[i, cv2.CC_STAT_WIDTH] 
+            h = stats[i, cv2.CC_STAT_HEIGHT] 
+
+            if SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
+                # it is a new SN case, construct a new profile for the SN case
+                mask = labels == i
+                if not in_mask_candidates(mask_candidates, mask):
+                    mask_candidates.append(mask)
+
+                    # then it should save the mask to the new mask folder
+                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}"))
+                    mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
+                    cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), mask * 255)
+                    with open(os.path.join(mask_dir_root, "SN_case_info.txt"), "w") as f:
+                        f.write(filtered_data.iloc[SN_num])
         
 
     # Process subsequent slices
@@ -142,10 +178,6 @@ def pixel2pc(pixel):
 
 def cm2pc(cm):
     return cm * 3.24077929e-19
-
-# filter the DataFrame
-def filter_data(df, range_coord):
-    return df[(df['posx_pc'] > range_coord[0]) & (df['posx_pc'] < range_coord[0] + range_coord[2]) & (df['posy_pc'] > range_coord[1]) & (df['posy_pc'] < range_coord[1] + range_coord[3]) & (df['posz_pc'] > range_coord[4] & (df['posz_pc'] < range_coord[5]))]
 
 
 def read_dat_log(dat_file_root, dataset_root):

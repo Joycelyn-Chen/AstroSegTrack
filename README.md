@@ -22,4 +22,9 @@
 ---
 ## ToDO
 - [ ] and ignore cases with 1 image only
+- track up and down, `gt_constuct.py` line 112, within the line 79 for loop
+    - gotta record the anchor slice number
+- then associate within the same timestamp
+    - read the center slice
+    - then track up and down
 
