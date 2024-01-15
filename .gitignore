@@ -167,3 +167,12 @@ cython_debug/
 *.dat
 */*.dat
 */*/*.dat
+
+# images
+*.jpg
+*.png
+*/*.jpg
+*/*.png
+*/*/*.jpg
+*/*/*.png
+
