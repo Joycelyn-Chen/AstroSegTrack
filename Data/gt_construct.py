@@ -70,6 +70,30 @@ def SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
         return True
     return False
 
+def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root, timestamp, i, direction):
+    for img_path_id in range(start_z, end_z, direction):    # direction: +1 tracking down, -1 tracking up
+        image_path = image_paths[img_path_id]
+        image = read_image_grayscale(image_path)
+        binary_image = apply_otsus_thresholding(image)
+        num_labels_up, labels_up, stats_up, centroids_up = find_connected_components(binary_image)
+
+        tmp_mask = mask
+        no_match = True
+
+        for label in range(2, num_labels_up):
+            current_mask = labels_up == label
+            if compute_iou(current_mask, tmp_mask) >= 0.6:
+                tmp_mask = current_mask
+                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}", str(timestamp)))
+                mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
+                cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+                no_match = False
+                break       # Moving to the next slice
+        
+        # If can't find any match in this slice, then move on to the next phase
+        if no_match:
+            break
+
 
 def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, dataset_root):
     # filter out all the SN events
@@ -81,7 +105,9 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
         posy_pc = int(filtered_data.iloc[SN_num]["posy_pc"])
         posz_pc = int(filtered_data.iloc[SN_num]["posz_pc"])
 
-        anchor_img = read_image_grayscale(image_paths[posz_pc + 500])
+        center_slice_z = posz_pc + 500
+
+        anchor_img = read_image_grayscale(image_paths[center_slice_z])
         binary_image = apply_otsus_thresholding(anchor_img)
         num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
@@ -97,6 +123,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
             w = stats[i, cv2.CC_STAT_WIDTH] 
             h = stats[i, cv2.CC_STAT_HEIGHT] 
 
+            # tracing this SN in the bubble for the entire cube 
             if SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
                 # it is a new SN case, construct a new profile for the SN case
                 mask = labels == i
@@ -109,27 +136,35 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
                     cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), mask * 255)
                     with open(os.path.join(mask_dir_root, "SN_case_info.txt"), "w") as f:
                         f.write(filtered_data.iloc[SN_num])
-        
 
-    # Process subsequent slices
-    for image_path in image_paths[1:]:
-        image = read_image_grayscale(image_path)
-        binary_image = apply_otsus_thresholding(image)
-        num_labels, labels, stats, centroids = find_connected_components(binary_image)
+                # tracking up       #TODO: see if this can tap, and combine with the SN_center_in_bubble block
+                associate_slices_within_cube(center_slice_z - 1, 0, image_paths, mask, dataset_root, timestamp, i, -1)
+                associate_slices_within_cube(center_slice_z + 1, 1000, image_paths, mask, dataset_root, timestamp, i, 1)
+                # for img_path_id in range(center_slice_z, 0, -1):
+                #     image_path = image_paths[img_path_id]
+                #     image = read_image_grayscale(image_path)
+                #     binary_image = apply_otsus_thresholding(image)
+                #     num_labels_up, labels_up, stats_up, centroids_up = find_connected_components(binary_image)
 
-        
-        for i in range(1, num_labels):
-            current_mask = labels == i
+                #     tmp_mask = mask
+                #     no_match = True
 
-            for j, candidate_mask in enumerate(mask_candidates):
-                iou = compute_iou(current_mask, candidate_mask)
-                if iou >= 0.5:
-                    # Update mask candidate and output current mask
-                    mask_candidates[j] = current_mask
+                #     for label in range(2, num_labels_up):
+                #         current_mask = labels_up == label
+                #         if compute_iou(current_mask, tmp_mask) >= 0.6:
+                #             tmp_mask = current_mask
+                #             mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}", str(timestamp)))
+                #             mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
+                #             cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+                #             no_match = False
+                #             break       # Moving to the next slice
+                    
+                #     # If can't find any match in this slice, then move on to the next phase
+                #     if no_match:
+                #         break
 
-                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{j}", str(timestamp)))
-                    mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     # -2 or -3
-                    cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
+
+    
     return mask_candidates
             
                     
