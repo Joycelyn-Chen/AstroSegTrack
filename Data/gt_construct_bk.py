@@ -214,6 +214,7 @@ def main(args):
         print(f"\n\nStart tracing through time {timestamp}")
 
 
+        # record the previous masks so that we don't repeat the recording for same mask
         mask_candidates = trace_current_timestamp(mask_candidates, timestamp, image_paths_sorted, all_data_df, args.dataset_root)
 
         # DEBUG 
