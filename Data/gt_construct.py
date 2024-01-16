@@ -70,21 +70,22 @@ def SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
         return True
     return False
 
-def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root, timestamp, i, direction):
+def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root, SN_timestamp, timestamp, i, direction):
+    tmp_mask = mask
+
     for img_path_id in range(start_z, end_z, direction):    # direction: +1 tracking down, -1 tracking up
         image_path = image_paths[img_path_id]
         image = read_image_grayscale(image_path)
         binary_image = apply_otsus_thresholding(image)
-        num_labels_up, labels_up, stats_up, centroids_up = find_connected_components(binary_image)
+        num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
-        tmp_mask = mask
         no_match = True
 
-        for label in range(2, num_labels_up):
-            current_mask = labels_up == label
-            if compute_iou(current_mask, tmp_mask) >= 0.6:
+        for label in range(2, num_labels):
+            current_mask = labels == label
+            if compute_iou(current_mask, tmp_mask) >= 0.6:      # if found a match in this slice
                 tmp_mask = current_mask
-                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}", str(timestamp)))
+                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{SN_timestamp}{i}", str(timestamp)))
                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
                 cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                 no_match = False
@@ -94,6 +95,17 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root
         if no_match:
             break
 
+def sort_image_paths(image_paths):
+    # sort the image paths accoording to their slice number
+    slice_image_paths = {}
+    for path in image_paths:
+        time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])
+        slice_image_paths[time] = path
+    
+    image_paths_sorted = []
+    for key in sorted(slice_image_paths):
+        image_paths_sorted.append(slice_image_paths[key])
+    return image_paths_sorted
 
 def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, dataset_root):
     # filter out all the SN events
@@ -134,73 +146,52 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
                     mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}"))
                     mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
                     cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), mask * 255)
-                    with open(os.path.join(mask_dir_root, "SN_case_info.txt"), "w") as f:
-                        f.write(filtered_data.iloc[SN_num])
+                    with open(os.path.join(mask_dir_root, f"SN_{timestamp}{i}_info.txt"), "w") as f:
+                        f.write(str(filtered_data.iloc[SN_num]))
 
                 # tracking up       #TODO: see if this can tap, and combine with the SN_center_in_bubble block
-                associate_slices_within_cube(center_slice_z - 1, 0, image_paths, mask, dataset_root, timestamp, i, -1)
-                associate_slices_within_cube(center_slice_z + 1, 1000, image_paths, mask, dataset_root, timestamp, i, 1)
-                # for img_path_id in range(center_slice_z, 0, -1):
-                #     image_path = image_paths[img_path_id]
-                #     image = read_image_grayscale(image_path)
-                #     binary_image = apply_otsus_thresholding(image)
-                #     num_labels_up, labels_up, stats_up, centroids_up = find_connected_components(binary_image)
-
-                #     tmp_mask = mask
-                #     no_match = True
-
-                #     for label in range(2, num_labels_up):
-                #         current_mask = labels_up == label
-                #         if compute_iou(current_mask, tmp_mask) >= 0.6:
-                #             tmp_mask = current_mask
-                #             mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}", str(timestamp)))
-                #             mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
-                #             cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
-                #             no_match = False
-                #             break       # Moving to the next slice
-                    
-                #     # If can't find any match in this slice, then move on to the next phase
-                #     if no_match:
-                #         break
-
-
-    
+                associate_slices_within_cube(center_slice_z - 1, 0, image_paths, mask, dataset_root, timestamp, timestamp, i, -1)
+                # tracking down
+                associate_slices_within_cube(center_slice_z + 1, 1000, image_paths, mask, dataset_root, timestamp, timestamp, i, 1)
+                
     return mask_candidates
             
+
+def read_center_z(SN_info_file, default_z):
+    with open(SN_info_file, "r") as f:
+        data = f.readlines()
+    
+    for line in data:
+        line = line.strip("\n")
+        if(line.split()[0] == "posz_pc"):
+            return int(float(line.split()[1]))
+    return default_z
                     
-def associate_subsequent_timestamp(timestamp, start_yr, end_yr, dataset_root):
+
+def retrieve_id(image_paths):
+    for i, path in enumerate(image_paths):
+        image_paths[i] = path[6:]
+    return image_paths
+
+
+def associate_subsequent_timestamp(timestamp, start_Myr, end_Myr, dataset_root):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
-    image_paths = glob.glob(os.path.join(dataset_root, 'SN_cases_0112', 'SN_*', str(timestamp), '*.png')) # List of image paths for this timestamp
-    for image_path in image_paths:
-        SN_num = int(image_path.split("/")[-3].split("_")[-1])
-        slice_num = image_path.split("/")[-1].split(".")[-2].split("z")[-1]
+    
+    SN_ids = retrieve_id(glob.glob(os.path.join(dataset_root, 'SN_cases_0112', f'SN_{timestamp}*'))) 
+    
+    for SN_id in SN_ids:
+        center_z = read_center_z(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{SN_id}", f"SN_{timestamp}{SN_id}_info.txt"), default_z = 0) 
+        mask = read_image_grayscale(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{SN_id}", str(timestamp), f"{img_prefix}{timestamp}_z{center_z}.png"))
 
-        
-        # read the pivot mask as binary image
-        mask_binary = read_image_grayscale(image_path)
+        for time_Myr in range(start_Myr, end_Myr):
+            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time_Myr), f"{img_prefix}{time_Myr}_z*.png"))) 
 
-        # find cooresponding slice in the raw img folder
-        for time in range(start_yr, end_yr):
-            next_raw_img_path = os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z{slice_num}.png")
-
-
-            # otsu and connected component the new slice
-            image = read_image_grayscale(next_raw_img_path)
-            binary_image = apply_otsus_thresholding(image)
-            num_labels, labels, stats, centroids = find_connected_components(binary_image)
-
-
-            # find the component with the most similar iou
-            for i in range(num_labels):
-                current_mask = labels == i
-                if compute_iou(current_mask, mask_binary) >= 0.6:
-                    # output the mask for this timestamp
-                    mask_binary = current_mask
-                    mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{SN_num}", str(time)))
-                    mask_name = f"{img_prefix}{time}_z{slice_num}.png"
-                    cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
-                    break
+            # tracking up
+            associate_slices_within_cube(center_z - 1, 0, image_paths, mask, dataset_root, timestamp, time_Myr, SN_id, -1)
+            # tracking down
+            associate_slices_within_cube(center_z + 1, 1000, image_paths, mask, dataset_root, timestamp, time_Myr, SN_id, 1)
+    
 
 
 # convert seconds to Megayears
@@ -268,23 +259,14 @@ def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
 
     for timestamp in timestamps:
-        image_paths = glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.png')) # List of image paths for this timestamp
+        image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.png'))) # List of image paths for this timestamp
 
-        # sort the image paths accoording to their slice number
-        slice_image_paths = {}
-        for path in image_paths:
-            time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])
-            slice_image_paths[time] = path
-        
-        image_paths_sorted = []
-        for key in sorted(slice_image_paths):
-            image_paths_sorted.append(slice_image_paths[key])
 
         # DEBUG 
         print(f"\n\nStart tracing through time {timestamp}")
 
 
-        mask_candidates = trace_current_timestamp(mask_candidates, timestamp, image_paths_sorted, all_data_df, args.dataset_root)
+        mask_candidates = trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data_df, args.dataset_root)
 
         # DEBUG 
         print(f"Done tracing through time {timestamp}")
