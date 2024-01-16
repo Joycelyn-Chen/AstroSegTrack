@@ -86,7 +86,7 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root
             if compute_iou(current_mask, tmp_mask) >= 0.6:      # if found a match in this slice
                 tmp_mask = current_mask
                 mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{SN_timestamp}{i}", str(timestamp)))
-                mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.jpg"     
+                mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
                 cv2.imwrite(os.path.join(mask_dir_root, mask_name), current_mask * 255)
                 no_match = False
                 break       # Moving to the next slice
@@ -144,7 +144,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
 
                     # then it should save the mask to the new mask folder
                     mask_dir_root = ensure_dir(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{i}"))
-                    mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.jpg"     
+                    mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
                     cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), mask * 255)
                     with open(os.path.join(mask_dir_root, f"SN_{timestamp}{i}_info.txt"), "w") as f:
                         f.write(str(filtered_data.iloc[SN_num]))
@@ -158,14 +158,21 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
             
 
 def read_center_z(SN_info_file, default_z):
-    with open(SN_info_file, "r") as f:
-        data = f.readlines()
+    try: 
+        with open(SN_info_file, "r") as f:
+            data = f.readlines()
+        for line in data:
+            line = line.strip("\n")
+            if(line.split()[0] == "posz_pc"):
+                return int(float(line.split()[1]))
+            
+    except FileNotFoundError as e:
+        print(f"File {SN_info_file} not found.")
+        return default_z
     
-    for line in data:
-        line = line.strip("\n")
-        if(line.split()[0] == "posz_pc"):
-            return int(float(line.split()[1]))
-    return default_z
+    except Exception as e:
+        print(f"Error reading {SN_info_file}")
+        return default_z
                     
 
 def retrieve_id(image_paths):
@@ -182,10 +189,15 @@ def associate_subsequent_timestamp(timestamp, start_Myr, end_Myr, dataset_root):
     
     for SN_id in SN_ids:
         center_z = read_center_z(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{SN_id}", f"SN_{timestamp}{SN_id}_info.txt"), default_z = 0) 
-        mask = read_image_grayscale(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{SN_id}", str(timestamp), f"{img_prefix}{timestamp}_z{center_z}.jpg"))
+        
+        # ignore cases if there's no info file
+        if center_z == 0:
+            continue
+        
+        mask = read_image_grayscale(os.path.join(dataset_root, 'SN_cases_0112', f"SN_{timestamp}{SN_id}", str(timestamp), f"{img_prefix}{timestamp}_z{center_z}.png"))
 
         for time_Myr in range(start_Myr, end_Myr):
-            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time_Myr), f"{img_prefix}{time_Myr}_z*.jpg"))) 
+            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time_Myr), f"{img_prefix}{time_Myr}_z*.png"))) 
 
             # tracking up
             associate_slices_within_cube(center_z - 1, 0, image_paths, mask, dataset_root, timestamp, time_Myr, SN_id, -1)
@@ -259,7 +271,7 @@ def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
 
     for timestamp in timestamps:
-        image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.jpg'))) # List of image paths for this timestamp
+        image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.png'))) # List of image paths for this timestamp
 
 
         # DEBUG 
