@@ -37,7 +37,8 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root
 
 def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, dataset_root, date):
     # filter out all the SN events
-    filtered_data = filter_data(all_data[(all_data['time_Myr'] >= timestamp - 1) & (all_data['time_Myr'] <= timestamp)],
+    time_Myr = timestamp2time_Myr(timestamp)
+    filtered_data = filter_data(all_data[(all_data['time_Myr'] >= time_Myr - 1) & (all_data['time_Myr'] <= time_Myr)],
                             (low_x0, low_y0, low_w, low_h, bottom_z, top_z))
 
     for SN_num in range(filtered_data.shape[0]):

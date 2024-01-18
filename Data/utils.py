@@ -119,3 +119,5 @@ def retrieve_id(image_paths):
         image_paths[i] = path.split("/")[-1][6:]
     return image_paths
 
+def timestamp2time_Myr(timestamp):
+    return (timestamp - 200) * 0.1 + 191
