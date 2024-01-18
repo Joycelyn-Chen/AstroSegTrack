@@ -46,7 +46,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
         posy_pc = int(filtered_data.iloc[SN_num]["posy_pc"])
         posz_pc = int(filtered_data.iloc[SN_num]["posz_pc"])
 
-        center_slice_z = posz_pc + 500
+        center_slice_z = pc2pixel(posz_pc, x_y_z = "z")
 
         anchor_img = read_image_grayscale(image_paths[center_slice_z])
         binary_image = apply_otsus_thresholding(anchor_img)
@@ -65,7 +65,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
             h = stats[i, cv2.CC_STAT_HEIGHT] 
 
             # tracing this SN in the bubble for the entire cube 
-            if SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
+            if SN_center_in_bubble(pc2pixel(posx_pc, x_y_z = "x"), pc2pixel(posy_pc, x_y_z = "y"), x1, y1, w, h):
                 # it is a new SN case, construct a new profile for the SN case
                 mask = labels == i
                 if not in_mask_candidates(mask_candidates, mask):

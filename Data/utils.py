@@ -65,11 +65,8 @@ def within_range(min, max, target):
     return False
 
 # see if the SN center is within the bubble bounding box region
-def SN_center_in_bubble(posx_pc, posy_pc, x1, y1, w, h):
-    posx_pc = posx_pc + 500
-    posy_pc = posy_pc + 500
-
-    if within_range(x1, x1 + w, posx_pc) and within_range(y1, y1 + h, posy_pc):
+def SN_center_in_bubble(posx_px, posy_px, x1, y1, w, h):
+    if within_range(x1, x1 + w, posx_px) and within_range(y1, y1 + h, posy_px):
         return True
     return False
 
@@ -121,3 +118,12 @@ def retrieve_id(image_paths):
 
 def timestamp2time_Myr(timestamp):
     return (timestamp - 200) * 0.1 + 191
+
+def pc2pixel(coord, x_y_z):
+    if x_y_z == "x":
+        return coord + 500
+    elif x_y_z == "y":
+        return 500 - coord
+    elif x_y_z == "z":
+        return coord + 500
+    return coord

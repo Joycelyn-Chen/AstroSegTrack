@@ -11,5 +11,6 @@
 
 ## Thresholding + Connected Component
 - use `Data/gt_construct.py` to perform thresholding cutoff and link the same group together as a label with connected component with opencv, and construct the ground truth dataset for the video object segmentation model.
+    - Execute: `python Data/gt_construct.py --start_Myr 200 --end_Myr 219 --dataset_root "../Dataset" --dat_file_root "SNfeedback" --date 0116 > output.txt 2>&1 &`
 - `Data/gt_construct_bk.py` is the previous working version for constructing the ground truth dataset, when the input was RGB image. Haven't ignore the case where there's only 1 mask per case, and the pixel and pc units wasn't aligned now
 
