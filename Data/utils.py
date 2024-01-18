@@ -121,9 +121,9 @@ def timestamp2time_Myr(timestamp):
 
 def pc2pixel(coord, x_y_z):
     if x_y_z == "x":
-        return coord + 500
+        return coord + top_z
     elif x_y_z == "y":
-        return 500 - coord
+        return top_z - coord
     elif x_y_z == "z":
-        return coord + 500
+        return coord + top_z
     return coord
