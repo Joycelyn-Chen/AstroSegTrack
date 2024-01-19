@@ -53,7 +53,7 @@ def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
 
     # Loop through all time and record the explosion    
-    for timestamp in range(args.begin_timestamp, args.end_timestamp, 10):
+    for timestamp in range(args.begin_timestamp, args.end_timestamp, args.incr):
         # DEBUG
         print(f"Processing timestamp {timestamp}")
 
@@ -75,14 +75,15 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--begin_timestamp", help="The starting timestamp for the dataset", type = int)                # 200
-    parser.add_argument("--end_timestamp", help="The ending timestamp for the dataset", type = int)                    # 360
+    parser.add_argument("--begin_timestamp", help="The starting timestamp for the dataset", type = int)                 # 200
+    parser.add_argument("--end_timestamp", help="The ending timestamp for the dataset", type = int)                     # 360
+    parser.add_argument("--incr", help="The timestamp increment interval", type = int)                                  # 10
     parser.add_argument("--hdf5_root", help="Path to HDF5 data root")                                                   # "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original"
     parser.add_argument("--output_dir", help="Output directory for the projection plots")                               # "/home/joy0921/Desktop/Dataset/200_360/ProjectionPlots"
-    parser.add_argument("--dataset_root", help="The root directory to the dataset")          # "../../Dataset"
+    parser.add_argument("--dataset_root", help="The root directory to the dataset")                                     # "../../Dataset"
     parser.add_argument("--dat_file_root", help="The root directory to the SNfeedback files, relative to dataset root")         # "SNfeedback"
 
-    # python Data/label_explosions.py --begin_timestamp 200 --end_timestamp 360 --hdf5_root "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original" --output_dir "/home/joy0921/Desktop/Dataset/200_360/ProjectionPlots" --dataset_root "../../Dataset" --dat_file_root "SNfeedback" > output.txt 2>&1 &
+    # python Data/label_explosions.py --begin_timestamp 200 --end_timestamp 360 --incr 10 --hdf5_root "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original" --output_dir "/home/joy0921/Desktop/Dataset/200_360/ProjectionPlots" --dataset_root "../../Dataset" --dat_file_root "SNfeedback" > output.txt 2>&1 &
     
     args = parser.parse_args()
     main(args)

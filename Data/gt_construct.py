@@ -88,7 +88,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
 
 
 
-def associate_subsequent_timestamp(timestamp, start_Myr, end_Myr, dataset_root, date):
+def associate_subsequent_timestamp(timestamp, start_timestamp, end_timestamp, incr, dataset_root, date):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
     
@@ -104,17 +104,17 @@ def associate_subsequent_timestamp(timestamp, start_Myr, end_Myr, dataset_root, 
         mask = read_image_grayscale(os.path.join(dataset_root, f'SN_cases_{date}', f"SN_{timestamp}{SN_id}", str(timestamp), f"{img_prefix}{timestamp}_z{center_z}.png"))
 
 
-        for time_Myr in range(start_Myr, end_Myr):
+        for time in range(start_timestamp, end_timestamp, incr):
             # Debug
-            print(f"Associating case SN_{timestamp}{SN_id}: {time_Myr}")
+            print(f"Associating case SN_{timestamp}{SN_id}: {time}")
 
 
-            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time_Myr), f"{img_prefix}{time_Myr}_z*.png"))) 
+            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z*.png"))) 
 
             # tracking up
-            associate_slices_within_cube(center_z - 1, 0, image_paths, mask, dataset_root, timestamp, time_Myr, SN_id, -1, date)
+            associate_slices_within_cube(center_z - 1, 0, image_paths, mask, dataset_root, timestamp, time, SN_id, -1, date)
             # tracking down
-            associate_slices_within_cube(center_z, 1000, image_paths, mask, dataset_root, timestamp, time_Myr, SN_id, 1, date)
+            associate_slices_within_cube(center_z, 1000, image_paths, mask, dataset_root, timestamp, time, SN_id, 1, date)
     
 
 
@@ -164,7 +164,7 @@ def read_dat_log(dat_file_root, dataset_root):
 
 
 def main(args):
-    timestamps = range(int(args.start_Myr), int(args.end_Myr) - 3)  # List of timestamps
+    timestamps = range(int(args.start_timestamp), int(args.end_timestamp), args.incr)  # List of timestamps
     
 
     # Read and process the .dat file logs
@@ -188,7 +188,7 @@ def main(args):
         print("Start associating with the subsequent timestamp")
 
         # associate with all later timestamp
-        associate_subsequent_timestamp(timestamp, timestamp + 1, int(args.end_Myr), args.dataset_root, args.date)
+        associate_subsequent_timestamp(timestamp, timestamp + args.incr, int(args.end_timestamp), args.incr, args.dataset_root, args.date)
         
         # DEBUG
         print(f"Done associating for timestamp {timestamp}\n")
@@ -197,8 +197,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start_Myr", help="The starting timestamp for the dataset", type = int)             # 200
-    parser.add_argument("--end_Myr", help="The ending timestamp for the dataset", type = int)               # 219
+    parser.add_argument("--start_timestamp", help="The starting timestamp for the dataset", type = int)             # 200
+    parser.add_argument("--end_timstamp", help="The ending timestamp for the dataset", type = int)               # 219
+    parser.add_argument("--incr", help="The timestamp increment interval", type = int) 
     parser.add_argument("--dataset_root", help="The root directory to the dataset")          # "../Dataset"
     parser.add_argument("--dat_file_root", help="The root directory to the SNfeedback files, relative to dataset root")         # "SNfeedback"
     parser.add_argument("--date", help="Enter today's date in mmdd format")

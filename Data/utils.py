@@ -74,7 +74,7 @@ def sort_image_paths(image_paths):
     # sort the image paths accoording to their slice number
     slice_image_paths = {}
     for path in image_paths:
-        time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])
+        time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])       # the time here actually refers to the z_slice, but it's only a temporary parameter, so didn't change
         slice_image_paths[time] = path
     
     image_paths_sorted = []
