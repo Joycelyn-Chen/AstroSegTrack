@@ -1,35 +1,55 @@
 import yt
 import os
-# import matplotlib.pyplot as plt
-# import numpy as np
-# import glob
-# from astropy import units as u
+import matplotlib.pyplot as plt
+import numpy as np
+import argparse
+import cv2 as cv
 
-root_folder = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/210_219"
-data_dir = "/Users/joycelynchen/Desktop/UBC/Research/Program/Dataset/210_219"
-file_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_"
+def ensure_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
 
-# 0200 ~ 1900
-lower_limit = 210
-upper_limit = 219
-offset = 1
-total_slice = 800
 
-for i in range(lower_limit, upper_limit + 1, offset):
-    if (i < 1000):
-        filename = f"{file_prefix}0{i}"
-    else:
-        filename = f"{file_prefix}{i}"
+def main(args):
+    for i in range(args.start_Myr, args.end_Myr, args.offset):
+        if (i < 1000):
+            filename = f"{args.file_prefix}0{i}"
+        else:
+            filename = f"{args.file_prefix}{i}"
 
-    # loading img data
-    ds = yt.load(os.path.join(root_folder, filename))
-    #ds.current_time, ds.current_time.to('Myr')
+        # loading img data
+        ds = yt.load(os.path.join(args.input_dir, filename))
+        #ds.current_time, ds.current_time.to('Myr')
+        # ad = ds.all_data()
 
-    # Saving img
-    for j in range(int(-(total_slice / 2)), int(total_slice / 2), 1):
-        f = yt.SlicePlot(ds, 'z', 'dens', center = [0, 0, j]*yt.units.pc)
-        f.hide_axes()
-        f.hide_colorbar()
-#       f.show()
-        f.save(os.path.join(data_dir, str(i), f'{filename}_z{int(j + (total_slice / 2))}.jpg'))
-        
+        center =  [0, 0, 0]*yt.units.pc
+        arb_center = ds.arr(center,'code_length')
+        left_edge = arb_center - ds.quan(int(args.xlim / 2),'pc')
+        right_edge = arb_center + ds.quan(int(args.ylim / 2),'pc')
+        obj = ds.arbitrary_grid(left_edge, right_edge, dims=[args.xlim, args.ylim, args.zlim])
+
+
+
+        # Saving img
+        for j in range(int(args.zlim)):
+            img = np.log10(obj["flash", "dens"][:,:,j].T[::-1])
+            normalizedImg = ((img - np.min(img)) / (np.max(img) - np.min(img)) ) * 255 
+
+            cv.imwrite(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{j}.jpg'), normalizedImg)
+            
+            
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_dir", help="The root directory for the hdf5 dataset")              # "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original"
+    parser.add_argument("--output_root_dir", help="The root directory for the img output")          # "/home/joy0921/Desktop/Dataset/200_360/200_360_png"
+    parser.add_argument("--file_prefix", help="")                                                   # "sn34_smd132_bx5_pe300_hdf5_plt_cnt_"
+    parser.add_argument("--start_Myr", help="The starting Myr for data range", type = int)          # 200  
+    parser.add_argument("--end_Myr", help="The end Myr for data range", type = int)                 # 210
+    parser.add_argument("--offset", help="The offset for incrementing Myr", type = int)             # 1   
+    parser.add_argument("--xlim", help="", type = int)                                         # 1000 
+    parser.add_argument("--ylim", help="", type = int)                                         # 1000  
+    parser.add_argument("--zlim", help="", type = int)                                         # 1000
+
+    args = parser.parse_args()
+    main(args)
