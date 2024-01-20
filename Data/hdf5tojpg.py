@@ -29,14 +29,12 @@ def main(args):
         right_edge = arb_center + ds.quan(int(args.ylim / 2),'pc')
         obj = ds.arbitrary_grid(left_edge, right_edge, dims=[args.xlim, args.ylim, args.zlim])
 
-
-
         # Saving img
         for j in range(int(args.zlim)):
             img = np.log10(obj["flash", "dens"][:,:,j].T[::-1])
             normalizedImg = ((img - np.min(img)) / (np.max(img) - np.min(img)) ) * 255 
 
-            cv.imwrite(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{j}.jpg'), normalizedImg)
+            cv.imwrite(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{j}{args.extension}'), normalizedImg)
             
             
 if __name__ == "__main__":
@@ -47,9 +45,10 @@ if __name__ == "__main__":
     parser.add_argument("--start_Myr", help="The starting Myr for data range", type = int)          # 200  
     parser.add_argument("--end_Myr", help="The end Myr for data range", type = int)                 # 210
     parser.add_argument("--offset", help="The offset for incrementing Myr", type = int)             # 1   
-    parser.add_argument("--xlim", help="", type = int)                                         # 1000 
-    parser.add_argument("--ylim", help="", type = int)                                         # 1000  
-    parser.add_argument("--zlim", help="", type = int)                                         # 1000
+    parser.add_argument("--xlim", help="Input xlim", type = int)                                         # 1000 
+    parser.add_argument("--ylim", help="Input ylim", type = int)                                         # 1000  
+    parser.add_argument("--zlim", help="Input zlim", type = int)                                         # 1000
+    parser.add_argument("--extension", help="Input the image extension (.jpg, .png)", default=".jpg")       # ".jpg"
 
     args = parser.parse_args()
     main(args)

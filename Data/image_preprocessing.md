@@ -6,8 +6,9 @@
     - log file: `SNfeedback.*.dat` (8 files in total)
 
 ## Convert HDF5 to PNG
-- use `Data/hdf5topng.py --input_dir input_path --output_dir output_path`
-- `python Data/hdf5topng.py --input_dir "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original" --output_root_dir "/home/joy0921/Desktop/Dataset/200_360/200_360_png" --file_prefix "sn34_smd132_bx5_pe300_hdf5_plt_cnt_" --start_Myr 200 --end_Myr 210 --offset 1 --xlim 1000 --ylim 1000 --zlim 1000 > output.txt 2>&1 &`
+- use `hdf5tojpg.py` to convert HDF5 simulation dataset to 2D images.
+- Execute: `python Data/hdf5topng.py --input_dir "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original" --output_root_dir "/home/joy0921/Desktop/Dataset/200_360/200_360_png" --file_prefix "sn34_smd132_bx5_pe300_hdf5_plt_cnt_" --start_Myr 200 --end_Myr 210 --offset 1 --xlim 1000 --ylim 1000 --zlim 1000 --extension ".jpg" > output.txt 2>&1 &`
+- default output as JPG files, replace with `--extension ".png"` to output as PNG files
 
 ## Thresholding + Connected Component
 - use `Data/gt_construct.py` to perform thresholding cutoff and link the same group together as a label with connected component with opencv, and construct the ground truth dataset for the video object segmentation model.
@@ -18,4 +19,11 @@
 - use `Data/label_explosions.py` to label the explosion cases for the previous Myr on the column density map
     - Execute: `python Data/label_explosions.py --begin_timestamp 200 --end_timestamp 360 --incr 10 --hdf5_root "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original" --output_dir "/home/joy0921/Desktop/Dataset/200_360/ProjectionPlots" --dataset_root "../../Dataset" --dat_file_root "SNfeedback" > output.txt 2>&1 &` 
 
-    
+## Helper code
+### `png2jpg.py`
+- I discover after generating the dataset that in the static image dataset, they put the raw images and the mask images under the same directory, the pair has the same image name, but with different extention (eg. img: a.jpg, mask: a.png)
+- Execute `python Data/png2jpg.py --path_to_folder "../Dataset/raw_img"`
+
+### `count_img.py`
+- use this program to count the total amount of image within the folder
+- Execute `python Data/count_img.py --path_to_folder path --duplicates True`

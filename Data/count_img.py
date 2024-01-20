@@ -16,7 +16,12 @@ if __name__ == "__main__":
     # Replace 'path_to_folder' with the root folder containing your directory structure
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_folder", help="The path to the dataset") 
+    parser.add_argument("--duplicates", action="store_true", help = "Indicate if the images are duplicated in the folder (img + mask)")
     args = parser.parse_args()
     
     total_images = count_images(args.path_to_folder)
-    print(f'Total number of images in the tree structure: {total_images / 2}')
+    if args.duplicates == True:
+        total_images = int(total_images / 2)
+    print(f'Total number of images in {args.path_to_folder}: {total_images}')
+
+    # python Data/count_img.py --path_to_folder path --duplicates True
