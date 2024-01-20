@@ -14,7 +14,9 @@ def remove_unmatched_jpg(folder_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path_to_folder", help="The path to the dataset") 
+    parser.add_argument("--path", help="The path to the dataset") 
     args = parser.parse_args()
 
-    remove_unmatched_jpg(args.path_to_folder)
+    remove_unmatched_jpg(args.path)
+
+    # python Data/remove_jpg.py --path "../Dataset/astro"

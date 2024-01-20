@@ -27,3 +27,7 @@
 ### `count_img.py`
 - use this program to count the total amount of image within the folder
 - Execute `python Data/count_img.py --path_to_folder path --duplicates True`
+
+### `remove_jpg.py`
+- use this program to remove the JPG files within the dataset that doesn't have a corresponding mask associated
+- Execute: `python Data/remove_jpg.py --path "../Dataset/astro"`
