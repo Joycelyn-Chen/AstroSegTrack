@@ -199,12 +199,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--start_timestamp", help="The starting timestamp for the dataset", type = int)             # 200
     parser.add_argument("--end_timstamp", help="The ending timestamp for the dataset", type = int)               # 219
-    parser.add_argument("--incr", help="The timestamp increment interval", type = int) 
+    parser.add_argument("--incr", help="The timestamp increment interval", default = 1, type = int) 
     parser.add_argument("--dataset_root", help="The root directory to the dataset")          # "../Dataset"
     parser.add_argument("--dat_file_root", help="The root directory to the SNfeedback files, relative to dataset root")         # "SNfeedback"
     parser.add_argument("--date", help="Enter today's date in mmdd format")
 
-    # python Data/gt_construct.py --start_Myr 200 --end_Myr 219 --dataset_root "../Dataset" --dat_file_root "SNfeedback" --date 0116 > output.txt 2>&1 &
+    # python Data/gt_construct.py --start_Myr 200 --end_Myr 219 --incr 10 --dataset_root "../Dataset" --dat_file_root "SNfeedback" --date 0116 > output.txt 2>&1 &
     
     args = parser.parse_args()
     main(args)
