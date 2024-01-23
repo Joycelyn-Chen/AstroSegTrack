@@ -57,7 +57,7 @@ def track_existed(parent, tracklets):
     timestamp = time_Myr2timestamp(read_info(glob.glob(os.path.join(parent, f"*.txt"))[0], info_col="time_Myr")) 
 
     # read the mask
-    current_mask = read_mask(parent, timestamp, f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp}_z{center_z}.png")
+    current_mask = load_mask(parent, timestamp, f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp}_z{center_z}.png")
 
     # compute iou with previous tracks
     for prev_tracklet in tracklets:
@@ -79,6 +79,14 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
                 pass
             # add new explosion
             # record info, name, time, xyz, mask
+            name = parent.split("/")[-1]
+            time = int(name[3:6])
+            txt_file = glob.glob(os.path.join(parent, str(time), "*.txt"))[0]
+            center_x, center_y, center_z = read_info(txt_file, info_col="posx_pc"), read_info(txt_file, info_col="posy_pc"), read_info(txt_file, info_col="posz_pc")
+            
+            # TODO: complete mask reading part
+            mask = load_mask
+
             # loop through masks, calc volume
             img_paths = sort_image_paths(glob.glob(os.path.join(parent, str(timestamp), f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0*")))
         # image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, f'SN_{timestamp}*', str(timestamp), '*.png')))

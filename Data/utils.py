@@ -150,6 +150,6 @@ def pc2pixel(coord, x_y_z):
         return coord + top_z
     return coord
 
-def read_mask(mask_root, timestamp, mask_filename):
+def load_mask(mask_root, timestamp, mask_filename):
     mask = cv2.imread(os.path.join(mask_root, str(timestamp), mask_filename))
     return mask / 255

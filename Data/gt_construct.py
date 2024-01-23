@@ -35,10 +35,10 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root
             break
 
 
-def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, dataset_root, date):
+def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, dataset_root, date, incr_interval):
     # filter out all the SN events
     time_Myr = timestamp2time_Myr(timestamp)
-    filtered_data = filter_data(all_data[(all_data['time_Myr'] >= time_Myr - 1) & (all_data['time_Myr'] <= time_Myr)],
+    filtered_data = filter_data(all_data[(all_data['time_Myr'] >= time_Myr - (incr_interval / 10)) & (all_data['time_Myr'] < time_Myr)],
                             (low_x0, low_y0, low_w, low_h, bottom_z, top_z))
 
     for SN_num in range(filtered_data.shape[0]):
@@ -180,7 +180,7 @@ def main(args):
         print(f"\n\nStart tracing through time {timestamp}")
 
 
-        mask_candidates = trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data_df, args.dataset_root, args.date)
+        mask_candidates = trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data_df, args.dataset_root, args.date, args.incr)
 
         # DEBUG 
         print(f"Done tracing through time {timestamp}")
