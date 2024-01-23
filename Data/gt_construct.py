@@ -94,9 +94,8 @@ def associate_subsequent_timestamp(timestamp, start_timestamp, end_timestamp, in
     
     SN_ids = retrieve_id(glob.glob(os.path.join(dataset_root, f'SN_cases_{date}', f'SN_{timestamp}*'))) 
     
-    for SN_id in SN_ids:
-        center_z = pc2pixel(read_center_z(os.path.join(dataset_root, f'SN_cases_{date}', f"SN_{timestamp}{SN_id}", f"SN_{timestamp}{SN_id}_info.txt"), default_z = 0), x_y_z = "z")  #correct z coordinate
-        
+    for SN_id in SN_ids:  
+        center_z = pc2pixel(read_info(os.path.join(dataset_root, f'SN_cases_{date}', f"SN_{timestamp}{SN_id}", f"SN_{timestamp}{SN_id}_info.txt"), info_col = "posz_pc"), x_y_z = "z")
         # ignore cases if there's no info file
         if center_z == top_z:
             continue

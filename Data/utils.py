@@ -110,6 +110,25 @@ def read_center_z(SN_info_file, default_z):
         print(f"Error reading {SN_info_file}")
         return default_z
                     
+def read_info(SN_info_file, info_col):
+    default_output = 0
+    try: 
+        with open(SN_info_file, "r") as f:
+            data = f.readlines()
+        for line in data:
+            line = line.strip("\n")
+            if(line.split()[0] == info_col):
+                if(info_col == "time_Myr"):
+                    return float(line.split()[1])
+                return int(float(line.split()[1]))
+            
+    except FileNotFoundError as e:
+        print(f"File {SN_info_file} not found.")
+        return default_output
+    
+    except Exception as e:
+        print(f"Error reading {SN_info_file}")
+        return default_output
 
 def retrieve_id(image_paths):
     for i, path in enumerate(image_paths):
@@ -119,6 +138,9 @@ def retrieve_id(image_paths):
 def timestamp2time_Myr(timestamp):
     return (timestamp - 200) * 0.1 + 191
 
+def time_Myr2timestamp(time_Myr):
+    return round(10 * (time_Myr - 191) + 200)
+
 def pc2pixel(coord, x_y_z):
     if x_y_z == "x":
         return coord + top_z
@@ -127,3 +149,7 @@ def pc2pixel(coord, x_y_z):
     elif x_y_z == "z":
         return coord + top_z
     return coord
+
+def read_mask(mask_root, timestamp, mask_filename):
+    mask = cv2.imread(os.path.join(mask_root, str(timestamp), mask_filename))
+    return mask / 255

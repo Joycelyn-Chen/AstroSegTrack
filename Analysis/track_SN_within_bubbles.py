@@ -3,18 +3,29 @@ import glob
 import os
 import argparse
 import numpy as np
+from Data.utils import *
+
+existence_thres = 0.4
 
 class Tracklet:
-    def __init__(self, name):
+    def __init__(self, name, time, center_x, center_y, center_z, mask):
         self.name = name
+        self.time = time
+        self.center = (center_x, center_y, center_z)
+        self.mask = mask
+        self.volume = {}
         self.explosions = []
 
-    def add_explosion(self, time, center_position, mask):
+    def add_explosion(self, name, time, center_x, center_y, center_z, mask, volume):
         self.explosions.append({
             'time': time,
-            'center_position': center_position,
-            'mask': mask
+            'center_position': (center_x, center_y, center_z),
+            'mask': mask,
+            'volume': volume,
+            'track': Tracklet(name, time, center_x, center_y, center_z, mask)
         })
+    def add_volume(self, time, volume):
+        self.volume[time] = volume
 
 def calculate_iou(mask1, mask2):
     # Implement IOU calculation here
@@ -29,10 +40,52 @@ def load_mask(folder_path, slice_number):
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     return mask
 
-def process_tracklets(start_timestamp, end_timestamp, interval):
+def sort_SN_img_paths(image_paths):
+    slice_image_paths = {}
+    for path in image_paths:
+        time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])       # the time here actually refers to the z_slice, but it's only a temporary parameter, so didn't change
+        slice_image_paths[time] = path
+    
+    image_paths_sorted = []
+    for key in sorted(slice_image_paths):
+        image_paths_sorted.append(slice_image_paths[key])
+    return image_paths_sorted
+
+def track_existed(parent, tracklets):
+    # read the info file
+    center_z = pc2pixel(read_info(glob.glob(os.path.join(parent, f"*.txt"))[0], info_col="posz_pc"), x_y_z = "z")
+    timestamp = time_Myr2timestamp(read_info(glob.glob(os.path.join(parent, f"*.txt"))[0], info_col="time_Myr")) 
+
+    # read the mask
+    current_mask = read_mask(parent, timestamp, f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp}_z{center_z}.png")
+
+    # compute iou with previous tracks
+    for prev_tracklet in tracklets:
+        parent_mask = prev_tracklet.mask
+        if compute_iou(current_mask, parent_mask) > existence_thres:
+            return True
+    return False
+
+def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
     tracklets = []
 
-    for timestamp in range(end_timestamp, start_timestamp - 1, -interval):
+    for timestamp in range(start_timestamp, end_timestamp, interval):
+        # get all cases folder path for this timestamp
+        parent_folders = glob.glob(os.path.join(dataset_root, f"SN_{timestamp}*"))
+        
+        for parent in parent_folders:
+            if not track_existed(parent, tracklets):
+                # add new tracklet
+                pass
+            # add new explosion
+            # record info, name, time, xyz, mask
+            # loop through masks, calc volume
+            img_paths = sort_image_paths(glob.glob(os.path.join(parent, str(timestamp), f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0*")))
+        # image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, f'SN_{timestamp}*', str(timestamp), '*.png')))
+
+
+
+
         timestamp_folder = f'SN_{timestamp}'
         text_file_path = os.path.join(timestamp_folder, 'info.txt')
 
@@ -61,13 +114,16 @@ def process_tracklets(start_timestamp, end_timestamp, interval):
 
 
 def main(args):
-    result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval)
+    result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval, args.dataset_root)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start_timestamp", help="Specify the starting timestamp", type = int) 
-    parser.add_argument("--end_timestamp", help="Specify the end timestamp for tracking", type = int)
-    parser.add_argument("--interval", help="Specify the interval between timestamps", type = int)       
+    parser.add_argument("--start_timestamp", help="Specify the starting timestamp", default = 200, type = int)     
+    parser.add_argument("--end_timestamp", help="Specify the end timestamp for tracking", default = 330, type = int)
+    parser.add_argument("--interval", help="Specify the interval between timestamps", default = 1, type = int)    
+    parser.add_argument("--dataset_root", help="Path to dataset root", default = "../../Dataset")   
 
 
     
