@@ -153,3 +153,23 @@ def pc2pixel(coord, x_y_z):
 def load_mask(mask_root, timestamp, mask_filename):
     mask = cv2.imread(os.path.join(mask_root, str(timestamp), mask_filename))
     return mask / 255
+
+def list_folders(directory):
+    folders = [folder for folder in os.listdir(directory) if os.path.isdir(os.path.join(directory, folder))]
+    return folders
+
+def volume_sum_in_mask(mask_paths, mask_root, timestamp):
+    sum_volume = 0
+    # Read the binary mask image
+    for mask_path in mask_paths:
+        mask_filename = mask_path.split("/")[-1] 
+        mask = load_mask(mask_root, timestamp, mask_filename)
+
+        if mask is None:
+            raise ValueError(f"Error loading mask image: {mask_path}")
+
+        # Count the number of pixels equal to 1
+        num_pixels = np.sum(mask == 1)
+        sum_volume += num_pixels
+
+    return sum_volume
