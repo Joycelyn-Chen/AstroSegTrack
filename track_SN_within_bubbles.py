@@ -7,7 +7,7 @@ import yt
 import matplotlib.pyplot as plt
 from Data.utils import *
 
-existence_thres = 0.4
+existence_thres = 0.3
 
 class Tracklet:
     def __init__(self, name, time, center_x, center_y, center_z, mask):
@@ -115,8 +115,8 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         filename = f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{time_Myr2timestamp(time)}"
         ds = yt.load(os.path.join(hdf5_root, filename))
         prj = yt.ProjectionPlot(ds, 'z', 'dens', center = [0, 0, 0] * yt.units.pc)
-        prj.annotate_timestamp()
-        prj.annotate_scale()
+        #prj.annotate_timestamp()
+        #prj.annotate_scale()
 
         #DEBUG
         print(f"Completed loading source file")
@@ -124,7 +124,6 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         for num, explosion in enumerate(tracklet.explosions):
             explosion_time_x = []
             volume_y = []
-            # plt.rcParams["figure.figsize"]=(20,10)          #TODO: adjust the figure size
 
             for i, evolvement in enumerate(explosion):
                 # [{time, center, mask. volume}, {}]
@@ -132,23 +131,31 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
                     center = (pixel2pc(evolvement["center"][0], x_y_z="x"), pixel2pc(evolvement["center"][1], x_y_z="y"), pixel2pc(evolvement["center"][2], x_y_z="z"))
                     # projection plot the center
                     prj.annotate_sphere([center[0], center[1]], radius=(10, "pc"), coord_system="plot", text=f"{evolvement['time']}")
+
+                    #DEBUG
+                    print(f"Center position: ({center[0]}, {center[1]})")
+
                 explosion_time_x.append(evolvement["time"])
                 volume_y.append(evolvement["volume"])
             
             # add a line to volume
             plt.plot(explosion_time_x, volume_y, marker = 'o', linestyle = 'dotted')
-
+          
             #DEBUG
             print(f"processed explosion [{num} / {len(tracklet.explosions)}]")
         
         # save projection plot and volume plot
+        prj.annotate_timestamp()
+        prj.annotate_scale()
         prj.save(os.path.join(args.output_root, f'{case_name}_project.png'))
 
-        plt.title(f'Case: {case_name} - Volume change for each explosion',fontsize=20)
-        plt.xlabel('Time (Myr)',fontsize=20)
-        plt.ylabel('Volume (pixel)',fontsize=20)
+        plt.title(f'Case: {case_name} - Volume change for each explosion',fontsize=10)
+        plt.xlabel('Time (Myr)',fontsize=10)
+        plt.ylabel('Volume (pixel)',fontsize=10)
+        plt.yscale('log')
         plt.grid()
         plt.savefig(os.path.join(args.output_root, f'{case_name}_volume.png'))
+        plt.clf()
 
         #DEBUG
         print("Plots saved!\n")
