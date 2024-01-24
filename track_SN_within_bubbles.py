@@ -45,6 +45,9 @@ def track_existed(parent, center_z, timestamp, tracks):
 def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
     tracks = []
 
+    #DEBUG
+    print("Begin tracking!")
+
     for timestamp in range(start_timestamp, end_timestamp, interval):
         # get all cases folder path for this timestamp
         parent_folders = glob.glob(os.path.join(dataset_root, f"SN_{timestamp}*"))
@@ -55,12 +58,18 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             txt_file = glob.glob(os.path.join(parent, "*.txt"))[0]
             center_x, center_y, center_z = pc2pixel(read_info(txt_file, info_col="posx_pc"), x_y_z="x"), pc2pixel(read_info(txt_file, info_col="posy_pc"), x_y_z="y"), pc2pixel(read_info(txt_file, info_col="posz_pc"), x_y_z="z")
             
+            #DEBUG
+            print(f"Now processing track {name}")
+
             current_tracklet = track_existed(parent, center_z, timestamp, tracks)
             if current_tracklet is None:
                 mask = load_mask(parent, timestamp, f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp}_z{center_z}.png")
                 
                 # add a new tracklet
                 current_tracklet = Tracklet(name, timestamp2time_Myr(timestamp), center_x, center_y, center_z, mask)
+
+                #DEBUG
+                print("Added a new track!")
                 
             # add new explosion
             # loop through masks, incrementing in timestamp, calc volume
@@ -71,6 +80,8 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
                 explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
             current_tracklet.add_explosion(explosion) 
             
+            #DEBUG
+            print("Found new explosion!")
 
             # for prev_tracklet in tracks:
             #     prev_explosion = prev_tracklet.explosions[-1]
@@ -88,16 +99,15 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
 def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, output_root, hdf5_root):
     # x values for the volume chart
     # time_x = range(timestamp2time_Myr(start_timestamp), timestamp2time_Myr(end_timestamp), interval / 10)
-    
-    #DEBUG
-    print("Begin tracking!")
 
+    #DEBUG
+    print("Begin analysing!")
 
     for tracklet in result_tracklets:
         time = tracklet.time        # time_Myr
         case_name = tracklet.name
         # center = (pixel2pc(tracklet.center[0], x_y_z="x"), pixel2pc(tracklet.center[1], x_y_z="y"), pixel2pc(tracklet.center[2], x_y_z="z"))
-        
+
         #DEBUG
         print(f"Now processing track {case_name}")
 
@@ -143,9 +153,7 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         #DEBUG
         print("Plots saved!\n")
 
-            
-
-        
+   
 
 def main(args):
     result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval, args.dataset_root)
