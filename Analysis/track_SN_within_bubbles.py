@@ -3,6 +3,8 @@ import glob
 import os
 import argparse
 import numpy as np
+import yt
+import matplotlib.pyplot as plt
 from Data.utils import *
 
 existence_thres = 0.4
@@ -58,7 +60,7 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
                 mask = load_mask(parent, timestamp, f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp}_z{center_z}.png")
                 
                 # add a new tracklet
-                current_tracklet = Tracklet(name, timestamp, center_x, center_y, center_z, mask)
+                current_tracklet = Tracklet(name, timestamp2time_Myr(timestamp), center_x, center_y, center_z, mask)
                 
             # add new explosion
             # loop through masks, incrementing in timestamp, calc volume
@@ -66,7 +68,7 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             for time in sorted(list(map(int, list_folders(parent)))):
                 img_paths = glob.glob(os.path.join(parent, time, "*.png"))
                 volume_pix = volume_sum_in_mask(img_paths, parent, time)
-                explosion.append({'time': time, 'center_position': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
+                explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
             current_tracklet.add_explosion(explosion) 
             
 
@@ -83,10 +85,71 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
 
     return tracks
 
+def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, output_root, hdf5_root):
+    # x values for the volume chart
+    # time_x = range(timestamp2time_Myr(start_timestamp), timestamp2time_Myr(end_timestamp), interval / 10)
+    
+    #DEBUG
+    print("Begin tracking!")
 
+
+    for tracklet in result_tracklets:
+        time = tracklet.time        # time_Myr
+        case_name = tracklet.name
+        # center = (pixel2pc(tracklet.center[0], x_y_z="x"), pixel2pc(tracklet.center[1], x_y_z="y"), pixel2pc(tracklet.center[2], x_y_z="z"))
+        
+        #DEBUG
+        print(f"Now processing track {case_name}")
+
+        # put on projection plot
+        filename = f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{time_Myr2timestamp(time)}"
+        ds = yt.load(os.path.join(hdf5_root, filename))
+        prj = yt.ProjectionPlot(ds, 'z', 'dens', center = [0, 0, 0] * yt.units.pc)
+        prj.annotate_timestamp()
+        prj.annotate_scale()
+
+        #DEBUG
+        print(f"Completed loading source file")
+
+        for num, explosion in enumerate(tracklet.explosions):
+            explosion_time_x = []
+            volume_y = []
+            # plt.rcParams["figure.figsize"]=(20,10)          #TODO: adjust the figure size
+
+            for i, evolvement in enumerate(explosion):
+                # [{time, center, mask. volume}, {}]
+                if i == 1:      # the initial explosion moment position
+                    center = (pixel2pc(evolvement["center"][0], x_y_z="x"), pixel2pc(evolvement["center"][1], x_y_z="y"), pixel2pc(evolvement["center"][2], x_y_z="z"))
+                    # projection plot the center
+                    prj.annotate_sphere([center[0], center[1]], radius=(10, "pc"), coord_system="plot", text=f"{evolvement['time']}")
+                explosion_time_x.append(evolvement["time"])
+                volume_y.append(evolvement["volume"])
+            
+            # add a line to volume
+            plt.plot(explosion_time_x, volume_y, marker = 'o', linestyle = 'dotted')
+
+            #DEBUG
+            print(f"processed explosion [{num} / {len(tracklet.explosions)}]")
+        
+        # save projection plot and volume plot
+        prj.save(os.path.join(args.output_root, f'{case_name}_project.png'))
+
+        plt.title(f'Case: {case_name} - Volume change for each explosion',fontsize=20)
+        plt.xlabel('Time (Myr)',fontsize=20)
+        plt.ylabel('Volume (pixel)',fontsize=20)
+        plt.grid()
+        plt.savefig(os.path.join(args.output_root, f'{case_name}_volume.png'))
+
+        #DEBUG
+        print("Plots saved!\n")
+
+            
+
+        
 
 def main(args):
     result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval, args.dataset_root)
+    track_analysis(result_tracklets, args.start_timestamp, args.end_timestamp, args.interval, ensure_dir(args.output_root), args.hdf5_root)
 
 
 
@@ -96,9 +159,9 @@ if __name__ == "__main__":
     parser.add_argument("--end_timestamp", help="Specify the end timestamp for tracking", default = 330, type = int)
     parser.add_argument("--interval", help="Specify the interval between timestamps", default = 1, type = int)    
     parser.add_argument("--dataset_root", help="Path to dataset root", default = "../../Dataset")   
-
-
+    parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/ProjectionPlots")   
+    parser.add_argument("--hdf5_root", help="Path to HDF5 root", default = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc")   
     
-    
+    # python Analysis/track_SN_within_bubbles.py --start_timestamp 200 --end_timestamp 330 --interval 10 --dataset_root "../../Dataset" --output_root "../../Dataset/ProjectionPlots"
     args = parser.parse_args()
     main(args)

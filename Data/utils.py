@@ -87,8 +87,8 @@ def seconds_to_megayears(seconds):
     return seconds / (1e6 * 365 * 24 * 3600)
 
 # Convert pixel value to pc
-def pixel2pc(pixel):
-    return (pixel * 10) / 8
+# def pixel2pc(pixel):
+#     return (pixel * 10) / 8
 
 def cm2pc(cm):
     return cm * 3.24077929e-19
@@ -148,6 +148,15 @@ def pc2pixel(coord, x_y_z):
         return top_z - coord
     elif x_y_z == "z":
         return coord + top_z
+    return coord
+
+def pixel2pc(coord, x_y_z):
+    if x_y_z == "x":
+        return coord - top_z
+    elif x_y_z == "y":
+        return top_z + coord
+    elif x_y_z == "z":
+        return coord - top_z
     return coord
 
 def load_mask(mask_root, timestamp, mask_filename):
