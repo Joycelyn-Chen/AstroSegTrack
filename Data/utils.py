@@ -154,7 +154,7 @@ def pixel2pc(coord, x_y_z):
     if x_y_z == "x":
         return coord - top_z
     elif x_y_z == "y":
-        return top_z + coord
+        return top_z - coord
     elif x_y_z == "z":
         return coord - top_z
     return coord
