@@ -66,7 +66,7 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             # loop through masks, incrementing in timestamp, calc volume
             explosion = []
             for time in sorted(list(map(int, list_folders(parent)))):
-                img_paths = glob.glob(os.path.join(parent, time, "*.png"))
+                img_paths = glob.glob(os.path.join(parent, str(time), "*.png"))
                 volume_pix = volume_sum_in_mask(img_paths, parent, time)
                 explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
             current_tracklet.add_explosion(explosion) 
@@ -162,6 +162,6 @@ if __name__ == "__main__":
     parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/ProjectionPlots")   
     parser.add_argument("--hdf5_root", help="Path to HDF5 root", default = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc")   
     
-    # python Analysis/track_SN_within_bubbles.py --start_timestamp 200 --end_timestamp 330 --interval 10 --dataset_root "../../Dataset" --output_root "../../Dataset/ProjectionPlots"
+    # python Analysis/track_SN_within_bubbles.py --start_timestamp 200 --end_timestamp 330 --interval 10 --dataset_root "../../Dataset/SN_cases_0122" --output_root "../../Dataset/ProjectionPlots"
     args = parser.parse_args()
     main(args)
