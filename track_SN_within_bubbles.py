@@ -162,7 +162,7 @@ def save_result_tracklets(result_tracklets, output_root):
 def main(args):
     result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval, args.dataset_root)
     track_analysis(result_tracklets, args.start_timestamp, args.end_timestamp, args.interval, ensure_dir(args.output_root), args.hdf5_root)
-    save_result_tracklets(result_tracklets)
+    save_result_tracklets(result_tracklets, args.output_root)
 
 
 
