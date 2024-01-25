@@ -20,7 +20,10 @@ class Tracklet:
 
     def add_explosion(self, explosion):
         self.explosions.append(explosion)       #{'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix}
-    
+
+    def remove_mask_from_explosions(self):
+        for explosion in self.explosions:
+            explosion.pop('mask', None)    
 
 def track_existed(parent, center_z, timestamp, tracks):
     # read the mask
@@ -131,14 +134,14 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         # save projection plot and volume plot
         prj.annotate_timestamp()
         prj.annotate_scale()
-        prj.save(os.path.join(args.output_root, f'{case_name}_project.png'))
+        prj.save(os.path.join(output_root, f'{case_name}_project.png'))
 
         plt.title(f'Case: {case_name} - Volume change for each explosion',fontsize=10)
         plt.xlabel('Time (Myr)',fontsize=10)
         plt.ylabel('Volume (pixel)',fontsize=10)
         plt.yscale('log')
         plt.grid()
-        plt.savefig(os.path.join(args.output_root, f'{case_name}_volume.png'))
+        plt.savefig(os.path.join(output_root, f'{case_name}_volume.png'))
         plt.clf()
 
         #DEBUG
@@ -148,6 +151,8 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
 def save_result_tracklets(result_tracklets, output_root):
     json_filename = "tracklets.json"
     for i, tracklet in enumerate(result_tracklets):
+        tracklet.mask = None
+        tracklet.remove_mask_from_explosions()
         result_tracklets[i] = tracklet.__dict__
 
     with open(os.path.join(output_root, json_filename), "w") as json_file:
