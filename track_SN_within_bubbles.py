@@ -21,10 +21,10 @@ class Tracklet:
     def add_explosion(self, explosion):
         self.explosions.append(explosion)       #{'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix}
 
-    def remove_mask_from_explosions(self):
-        for explosion in self.explosions:
-            for evolution in explosion:
-                evolution.pop('mask')   
+    # def remove_mask_from_explosions(self):
+    #     for explosion in self.explosions:
+    #         for evolution in explosion:
+    #             evolution.pop('mask')   
 
 def track_existed(parent, center_z, timestamp, tracks):
     # read the mask
@@ -74,7 +74,8 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             for time in sorted(list(map(int, list_folders(parent)))):
                 img_paths = glob.glob(os.path.join(parent, str(time), "*.png"))
                 volume_pix = volume_sum_in_mask(img_paths, parent, time)
-                explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
+                # explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
+                explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'volume': volume_pix})
             current_tracklet.add_explosion(explosion) 
             
             #DEBUG
@@ -153,7 +154,7 @@ def save_result_tracklets(result_tracklets, output_root):
     json_filename = "tracklets.json"
     for i, tracklet in enumerate(result_tracklets):
         tracklet.mask = None
-        tracklet.remove_mask_from_explosions()
+        # tracklet.remove_mask_from_explosions()
         result_tracklets[i] = tracklet.__dict__
 
     with open(os.path.join(output_root, json_filename), "w") as json_file:
