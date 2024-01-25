@@ -76,15 +76,6 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             #DEBUG
             print("Found new explosion!")
 
-            # for prev_tracklet in tracks:
-            #     prev_explosion = prev_tracklet.explosions[-1]
-            #     prev_mask = prev_explosion['mask']
-
-            #     iou = compute_iou(mask, prev_mask)
-
-            #     if iou > 0.6:
-            #         current_tracklet.explosions.append(prev_explosion)
-
             tracks.append(current_tracklet)
 
     return tracks
@@ -156,6 +147,9 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
    
 def save_result_tracklets(result_tracklets, output_root):
     json_filename = "tracklets.json"
+    for i, tracklet in enumerate(result_tracklets):
+        result_tracklets[i] = tracklet.__dict__
+
     with open(os.path.join(output_root, json_filename), "w") as json_file:
         json.dump(result_tracklets, json_file, indent=2)
 
