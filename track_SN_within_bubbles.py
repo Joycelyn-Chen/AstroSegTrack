@@ -4,6 +4,7 @@ import os
 import argparse
 import numpy as np
 import yt
+import json
 import matplotlib.pyplot as plt
 from Data.utils import *
 
@@ -17,16 +18,8 @@ class Tracklet:
         self.mask = mask
         self.explosions = []
 
-    # def add_explosion(self, name, time, center_x, center_y, center_z, mask, volume):
-    #     self.explosions.append({
-    #         'time': time,
-    #         'center_position': (center_x, center_y, center_z),
-    #         'mask': mask,
-    #         'volume': volume,
-    #         'track': Tracklet(name, time, center_x, center_y, center_z, mask)
-    #     })
     def add_explosion(self, explosion):
-        self.explosions.append(explosion)
+        self.explosions.append(explosion)       #{'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix}
     
 
 def track_existed(parent, center_z, timestamp, tracks):
@@ -161,10 +154,15 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         print("Plots saved!\n")
 
    
+def save_result_tracklets(result_tracklets, output_root):
+    json_filename = "tracklets.json"
+    with open(os.path.join(output_root, json_filename), "w") as json_file:
+        json.dump(result_tracklets, json_file, indent=2)
 
 def main(args):
     result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval, args.dataset_root)
     track_analysis(result_tracklets, args.start_timestamp, args.end_timestamp, args.interval, ensure_dir(args.output_root), args.hdf5_root)
+    save_result_tracklets(result_tracklets)
 
 
 
