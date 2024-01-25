@@ -23,7 +23,8 @@ class Tracklet:
 
     def remove_mask_from_explosions(self):
         for explosion in self.explosions:
-            explosion.pop('mask', None)    
+            for evolution in explosion:
+                evolution.pop('mask')   
 
 def track_existed(parent, center_z, timestamp, tracks):
     # read the mask
