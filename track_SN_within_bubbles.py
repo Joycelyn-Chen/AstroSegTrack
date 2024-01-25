@@ -73,7 +73,7 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             explosion = []
             for time in sorted(list(map(int, list_folders(parent)))):
                 img_paths = glob.glob(os.path.join(parent, str(time), "*.png"))
-                volume_pix = volume_sum_in_mask(img_paths, parent, time)
+                volume_pix = int(volume_sum_in_mask(img_paths, parent, time))
                 # explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
                 explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'volume': volume_pix})
             current_tracklet.add_explosion(explosion) 
