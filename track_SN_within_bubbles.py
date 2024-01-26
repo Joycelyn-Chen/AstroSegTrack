@@ -4,6 +4,7 @@ import os
 import argparse
 import numpy as np
 import yt
+import json
 import matplotlib.pyplot as plt
 from Data.utils import *
 
@@ -17,17 +18,13 @@ class Tracklet:
         self.mask = mask
         self.explosions = []
 
-    # def add_explosion(self, name, time, center_x, center_y, center_z, mask, volume):
-    #     self.explosions.append({
-    #         'time': time,
-    #         'center_position': (center_x, center_y, center_z),
-    #         'mask': mask,
-    #         'volume': volume,
-    #         'track': Tracklet(name, time, center_x, center_y, center_z, mask)
-    #     })
     def add_explosion(self, explosion):
-        self.explosions.append(explosion)
-    
+        self.explosions.append(explosion)       #{'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix}
+
+    # def remove_mask_from_explosions(self):
+    #     for explosion in self.explosions:
+    #         for evolution in explosion:
+    #             evolution.pop('mask')   
 
 def track_existed(parent, center_z, timestamp, tracks):
     # read the mask
@@ -77,21 +74,13 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
             explosion = []
             for time in sorted(list(map(int, list_folders(parent)))):
                 img_paths = glob.glob(os.path.join(parent, str(time), "*.png"))
-                volume_pix = volume_sum_in_mask(img_paths, parent, time)
-                explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
+                volume_pix = int(volume_sum_in_mask(img_paths, parent, time))
+                # explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'mask': mask, 'volume': volume_pix})
+                explosion.append({'time': timestamp2time_Myr(time), 'center': (center_x, center_y, center_z), 'volume': volume_pix})
             current_tracklet.add_explosion(explosion) 
             
             #DEBUG
             print("Found new explosion!")
-
-            # for prev_tracklet in tracks:
-            #     prev_explosion = prev_tracklet.explosions[-1]
-            #     prev_mask = prev_explosion['mask']
-
-            #     iou = compute_iou(mask, prev_mask)
-
-            #     if iou > 0.6:
-            #         current_tracklet.explosions.append(prev_explosion)
 
             tracks.append(current_tracklet)
 
@@ -148,24 +137,34 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         # save projection plot and volume plot
         prj.annotate_timestamp()
         prj.annotate_scale()
-        prj.save(os.path.join(args.output_root, f'{case_name}_project.png'))
+        prj.save(os.path.join(output_root, f'{case_name}_project.png'))
 
         plt.title(f'Case: {case_name} - Volume change for each explosion',fontsize=10)
         plt.xlabel('Time (Myr)',fontsize=10)
         plt.ylabel('Volume (pixel)',fontsize=10)
         plt.yscale('log')
         plt.grid()
-        plt.savefig(os.path.join(args.output_root, f'{case_name}_volume.png'))
+        plt.savefig(os.path.join(output_root, f'{case_name}_volume.png'))
         plt.clf()
 
         #DEBUG
         print("Plots saved!\n")
 
    
+def save_result_tracklets(result_tracklets, output_root):
+    json_filename = "tracklets.json"
+    for i, tracklet in enumerate(result_tracklets):
+        tracklet.mask = None
+        # tracklet.remove_mask_from_explosions()
+        result_tracklets[i] = tracklet.__dict__
+
+    with open(os.path.join(output_root, json_filename), "w") as json_file:
+        json.dump(result_tracklets, json_file, indent=2)
 
 def main(args):
     result_tracklets = process_tracklets(args.start_timestamp, args.end_timestamp, args.interval, args.dataset_root)
     track_analysis(result_tracklets, args.start_timestamp, args.end_timestamp, args.interval, ensure_dir(args.output_root), args.hdf5_root)
+    save_result_tracklets(result_tracklets, args.output_root)
 
 
 
