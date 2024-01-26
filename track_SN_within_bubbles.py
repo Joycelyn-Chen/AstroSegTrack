@@ -10,9 +10,9 @@ from Data.utils import *
 existence_thres = 0.3
 
 class Tracklet:
-    def __init__(self, name, time, center_x, center_y, center_z, mask):
+    def __init__(self, name, timestamp, center_x, center_y, center_z, mask):
         self.name = name
-        self.time = time
+        self.timestamp = timestamp
         self.center = (center_x, center_y, center_z)
         self.mask = mask
         self.explosions = []
@@ -55,8 +55,9 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
         for parent in parent_folders:
             # record info, name, time, xyz, mask
             name = parent.split("/")[-1]
-            txt_file = glob.glob(os.path.join(parent, "*.txt"))[0]
+            txt_file = glob.glob(os.path.join(parent, "*.txt"))[0]      # 200
             center_x, center_y, center_z = pc2pixel(read_info(txt_file, info_col="posx_pc"), x_y_z="x"), pc2pixel(read_info(txt_file, info_col="posy_pc"), x_y_z="y"), pc2pixel(read_info(txt_file, info_col="posz_pc"), x_y_z="z")
+            current_time = read_info(txt_file, info_col="time_Myr")         # 190.1
             
             #DEBUG
             print(f"Now processing track {name}")
@@ -66,7 +67,7 @@ def process_tracklets(start_timestamp, end_timestamp, interval, dataset_root):
                 mask = load_mask(parent, timestamp, f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp}_z{center_z}.png")
                 
                 # add a new tracklet
-                current_tracklet = Tracklet(name, timestamp2time_Myr(timestamp), center_x, center_y, center_z, mask)
+                current_tracklet = Tracklet(name, timestamp, center_x, center_y, center_z, mask)
 
                 #DEBUG
                 print("Added a new track!")
@@ -104,7 +105,7 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
     print("Begin analysing!")
 
     for tracklet in result_tracklets:
-        time = tracklet.time        # time_Myr
+        timestamp = tracklet.timestamp        # time_Myr
         case_name = tracklet.name
         # center = (pixel2pc(tracklet.center[0], x_y_z="x"), pixel2pc(tracklet.center[1], x_y_z="y"), pixel2pc(tracklet.center[2], x_y_z="z"))
 
@@ -112,7 +113,7 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         print(f"Now processing track {case_name}")
 
         # put on projection plot
-        filename = f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{time_Myr2timestamp(time)}"
+        filename = f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp + 1}"
         ds = yt.load(os.path.join(hdf5_root, filename))
         prj = yt.ProjectionPlot(ds, 'z', 'dens', center = [0, 0, 0] * yt.units.pc)
         #prj.annotate_timestamp()
@@ -135,7 +136,7 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
                     #DEBUG
                     print(f"Center position: ({center[0]}, {center[1]})")
 
-                explosion_time_x.append(evolvement["time"])
+                explosion_time_x.append(evolvement["time"] + 1)     #DEBUG remove + 1 if mismatch in volume chart
                 volume_y.append(evolvement["volume"])
             
             # add a line to volume
