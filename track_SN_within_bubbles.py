@@ -102,7 +102,7 @@ def track_analysis(result_tracklets, start_timestamp, end_timestamp, interval, o
         print(f"Now processing track {case_name}")
 
         # put on projection plot
-        filename = f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp + 1}"
+        filename = f"sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{timestamp + interval}"
         ds = yt.load(os.path.join(hdf5_root, filename))
         prj = yt.ProjectionPlot(ds, 'z', 'dens', center = [0, 0, 0] * yt.units.pc)
         #prj.annotate_timestamp()
