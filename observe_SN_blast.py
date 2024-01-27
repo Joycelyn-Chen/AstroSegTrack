@@ -15,6 +15,10 @@ def main(args):
 
     for timestamp in range(args.start_timestamp, args.end_timestamp, args.interval):
         time_Myr = timestamp2time_Myr(timestamp)
+
+        #DEBUG
+        print()
+
         filtered_data = filter_data(all_data[(all_data['time_Myr'] >= time_Myr - (args.interval / 10)) & (all_data['time_Myr'] < time_Myr)],
                                 (low_x0, low_y0, low_w, low_h, bottom_z, top_z))
 
