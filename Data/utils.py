@@ -119,7 +119,7 @@ def read_info(SN_info_file, info_col):
             line = line.strip("\n")
             if(line.split()[0] == info_col):
                 if(info_col == "time_Myr"):
-                    return float(line.split()[1])
+                    return round(float(line.split()[1]), 1)
                 return int(float(line.split()[1]))
             
     except FileNotFoundError as e:
