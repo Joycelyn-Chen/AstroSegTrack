@@ -6,7 +6,7 @@ import numpy as np
 import yt
 import json
 import matplotlib.pyplot as plt
-from Data.utils import *
+from data.utils import *
 
 existence_thres = 0.3
 

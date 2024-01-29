@@ -5,7 +5,7 @@ import numpy as np
 import yt
 import json
 import matplotlib.pyplot as plt
-from Data.utils import *
+from data.utils import *
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 
