@@ -19,41 +19,51 @@ class Autoencoder3D(nn.Module):
     def __init__(self):
         super(Autoencoder3D, self).__init__()
 
+        # Initialize ResNet-18 pre-trained model
         self.resnet18 = resnet18(pretrained=True)
+        # Modify the first convolutional layer to accept 1-channel input
         self.resnet18.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        self.resnet18.fc = nn.Identity()  # Remove the fully connected layer
+        # Remove the fully connected layer
+        self.resnet18.fc = nn.Identity()
 
-        # Encoder
-        self.encoder = nn.Sequential(
-            nn.Conv3d(1, 64, kernel_size=(1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3)),
-            nn.ReLU(inplace=True),
-            # Apply ResNet-18 slice-by-slice here in forward method
-        )
+        # Encoder with initial 3D convolution
+        self.encoder_conv3d = nn.Conv3d(1, 64, kernel_size=(1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3))
+        self.encoder_relu = nn.ReLU(inplace=True)
 
         # Decoder
         self.decoder = nn.Sequential(
-            nn.ConvTranspose3d(512, 1, kernel_size=(1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3), output_padding=(0, 1, 1)),
-            nn.Sigmoid()  # Output should be in the range [0, 1]
+            nn.ConvTranspose3d(512, 64, kernel_size=(1, 16, 16), stride=(1, 2, 2), padding=(0, 7, 7), output_padding=(0, 1, 1)),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose3d(64, 1, kernel_size=(1, 16, 16), stride=(1, 2, 2), padding=(0, 7, 7), output_padding=(0, 1, 1)),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
-        #DEBUG
-        print(f"x shape: {x.shape}\n\n")
-        # x = x.squeeze(3)
+        # DEBUG
+        print(f"X shape: {x.shape}")
 
-        batch_size, C, D, H, W = x.size()
-        x = self.encoder(x)  # Apply initial 3D conv
+        batch_size, C, D, H, W = x.shape       #x.size()
+        x = self.encoder_relu(self.encoder_conv3d(x))  # Apply initial 3D conv
 
-        # Process each slice using ResNet-18
-        # x = x.view(batch_size * D, 64, H // 2, W // 2)  # Adjust for ResNet-18 input
-        x = x.view(batch_size * D, 1, H, W) 
+        # Prepare data for ResNet-18
+        # x = x.view(batch_size * D, C, H // 2, W // 2)  # Adjust for ResNet-18 input, considering the effect of the 3D conv
+        # x = x.view(batch_size * D, 1, H, W) 
+        x = x.mean(dim=1, keepdim=True)  # Reduce across the channel dimension, resulting in [1, 1, 1000, 112, 112]
+        x = x.view(-1, C, H // 2, W // 2)  # Reshape for processing, resulting in [1000, 1, 112, 112]
 
-        #DEBUG
-        print("Input tensor shape before conv layer:", x.shape, "\n\n")
+        # DEBUG
+        print(f"X shape: {x.shape}")
 
-        x = [self.resnet18(x[i].unsqueeze(0)) for i in range(x.size(0))]
-        x = torch.stack(x, dim=0)
-        x = x.view(batch_size, D, 512, H // 2 // 32, W // 2 // 32)  # Adjust shape back to 3D
+        # Process each slice using ResNet-18 in a more batch-efficient manner
+        # x = torch.cat([self.resnet18(x[i * D:(i + 1) * D].unsqueeze(1)) for i in range(batch_size)], dim=0)
+        x = torch.stack([self.resnet18(x[i].unsqueeze(0)) for i in range(x.size(0))])
+
+        # DEBUG
+        print(f"X shape: {x.shape}")
+        
+        
+        # Reshape the output to have the correct dimensions for the decoder
+        x = x.view(batch_size, D, 512, H // 32, W // 32)  # Adjust shape back to 3D, considering ResNet-18's downsampling
 
         x = self.decoder(x)  # Decode
         return x
