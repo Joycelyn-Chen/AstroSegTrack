@@ -7,6 +7,12 @@ from torchvision.models import resnet18
 from torchsummary import summary
 from PIL import Image
 import os
+import argparse
+
+def ensure_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
 
 # Define the updated 3D Autoencoder model
 class Autoencoder3D(nn.Module):
@@ -54,11 +60,12 @@ class CustomDataset3D(Dataset):
 
     def __getitem__(self, idx):
         cube_path = self.cube_paths[idx]
+        cube_timestamp = int(cube_path.split("/")[-1])
         cube_slices = []
 
         # Load each slice in the cube
         for i in range(1000):
-            slice_name = f'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0*_z{i}.png'
+            slice_name = f'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{cube_timestamp}_z{i}.png'
             slice_path = os.path.join(cube_path, slice_name)
             image = Image.open(slice_path).convert('L')  # Convert to grayscale
             if self.transform:
@@ -69,42 +76,53 @@ class CustomDataset3D(Dataset):
         cube_data = torch.cat(cube_slices, dim=0)
         return cube_data
 
-# Set device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Define transforms
-transform = transforms.Compose([
-    transforms.Resize((1000, 1000)),  # Adjusted size
-    transforms.ToTensor()
-])
+def main(args):
+    # Set device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Create the updated 3D autoencoder model
-autoencoder_3d = Autoencoder3D().to(device)
+    # Define transforms
+    transform = transforms.Compose([
+        transforms.Resize((1000, 1000)),  # Adjusted size
+        transforms.ToTensor()
+    ])
 
-# Create the dataset and DataLoader for 3D cubes
-dataset_3d = CustomDataset3D(root_dir="Dataset", transform=transform)
-dataloader_3d = DataLoader(dataset_3d, batch_size=1, shuffle=True, num_workers=4)
+    # Create the updated 3D autoencoder model
+    autoencoder_3d = Autoencoder3D().to(device)
 
-# Define loss function and optimizer
-criterion_3d = nn.MSELoss()
-optimizer_3d = optim.Adam(autoencoder_3d.parameters(), lr=0.001)
+    # Create the dataset and DataLoader for 3D cubes
+    dataset_3d = CustomDataset3D(root_dir=args.input_dir, transform=transform)
+    dataloader_3d = DataLoader(dataset_3d, batch_size=1, shuffle=True, num_workers=4)
 
-# Training loop for 3D cubes
-num_epochs_3d = 10
-for epoch in range(num_epochs_3d):
-    for data_3d in dataloader_3d:
-        data_3d = data_3d.to(device)
+    # Define loss function and optimizer
+    criterion_3d = nn.MSELoss()
+    optimizer_3d = optim.Adam(autoencoder_3d.parameters(), lr=0.001)
 
-        # Forward pass
-        output_3d = autoencoder_3d(data_3d)
-        loss_3d = criterion_3d(output_3d, data_3d)
-        
-        # Backward pass and optimization
-        optimizer_3d.zero_grad()
-        loss_3d.backward()
-        optimizer_3d.step()
+    # Training loop for 3D cubes
+    num_epochs_3d = 10
+    for epoch in range(num_epochs_3d):
+        for data_3d in dataloader_3d:
+            data_3d = data_3d.to(device)
 
-    print(f'Epoch [{epoch+1}/{num_epochs_3d}], Loss: {loss_3d.item():.4f}')
+            # Forward pass
+            output_3d = autoencoder_3d(data_3d)
+            loss_3d = criterion_3d(output_3d, data_3d)
+            
+            # Backward pass and optimization
+            optimizer_3d.zero_grad()
+            loss_3d.backward()
+            optimizer_3d.step()
 
-# Save the trained 3D autoencoder model
-torch.save(autoencoder_3d.state_dict(), 'autoencoder_3d_model.pth')
+        print(f'Epoch [{epoch+1}/{num_epochs_3d}], Loss: {loss_3d.item():.4f}')
+
+    # Save the trained 3D autoencoder model
+    torch.save(autoencoder_3d.state_dict(), os.path.join(ensure_dir(args.output_dir), 'autoencoder_3d_model.pth'))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_dir", help="The root directory for the hdf5 dataset")              # ../../Dataset/raw_img"
+    parser.add_argument("--output_dir", help="The root directory for the network parameter output")          # "../models"
+
+    args = parser.parse_args()
+    main(args)
