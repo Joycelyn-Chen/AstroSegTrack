@@ -46,7 +46,7 @@ def main(args):
     sample_cube_timestamp = int(sample_cube_path.split("/")[-1])
     sample_cube = []
     for i in range(1000):
-        slice_name = f'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{sample_cube_timestamp}_z{i}.png'
+        slice_name = f'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{sample_cube_timestamp}_z{i}.jpg'
         slice_path = os.path.join(sample_cube_path, slice_name)
         image = Image.open(slice_path).convert('L')  # Convert to grayscale
         image = transform_inference(image).unsqueeze(0).unsqueeze(0)  # Add batch and channel dimensions

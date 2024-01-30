@@ -65,7 +65,7 @@ class CustomDataset3D(Dataset):
 
         # Load each slice in the cube
         for i in range(1000):
-            slice_name = f'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{cube_timestamp}_z{i}.png'
+            slice_name = f'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{cube_timestamp}_z{i}.jpg'
             slice_path = os.path.join(cube_path, slice_name)
             image = Image.open(slice_path).convert('L')  # Convert to grayscale
             if self.transform:
