@@ -121,8 +121,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_dir", help="The root directory for the hdf5 dataset")              # ../../Dataset/raw_img"
-    parser.add_argument("--output_dir", help="The root directory for the network parameter output")          # "../models"
+    parser.add_argument("--input_dir", help="The root directory for the hdf5 dataset", default = "../Dataset/raw_img")              # ../../Dataset/raw_img"
+    parser.add_argument("--output_dir", help="The root directory for the network parameter output", default = "models")          # "models"
+
+    # python encoder/autoencoder.py --input_dir "../Dataset/raw_img" --output_dir "models"
 
     args = parser.parse_args()
     main(args)
