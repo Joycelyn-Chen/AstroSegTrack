@@ -2,7 +2,7 @@ import yt
 import os
 import pandas as pd
 import argparse
-from Data.utils import *
+from data.utils import *
 
 def read_dat_log(dat_file_root, dataset_root):
     # Only 1 log file is enough, cause they're actually copies of each other
