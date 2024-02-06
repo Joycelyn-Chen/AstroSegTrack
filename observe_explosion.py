@@ -3,57 +3,12 @@ import argparse
 import yt
 from data.utils import *
 
-from PIL import Image
-import matplotlib.pyplot as plt
-
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
-
-
-def count_white_pixels(image_path):
-    """Count the number of white pixels in an image."""
-    with Image.open(image_path) as img:
-        return sum(pixel == 255 for pixel in img.convert('L').getdata())
-
-def aggregate_white_pixels(root_dir):
-    """Aggregate white pixels from all masks within each timestamp subdirectory."""
-    timestamp_counts = []
-    timestamps = []
-
-    # Walk through all subdirectories in the root folder
-    for subdir, _, files in os.walk(root_dir):
-        if subdir == root_dir:
-            # Skip the root directory itself
-            continue
-
-        total_white_pixels = 0
-        for file in files:
-            if file.endswith('.png'):  # Assuming mask images are PNGs
-                image_path = os.path.join(subdir, file)
-                total_white_pixels += count_white_pixels(image_path)
-
-        timestamp = os.path.basename(subdir)
-        timestamps.append(timestamp)
-        timestamp_counts.append(total_white_pixels)
-
-    return timestamps, timestamp_counts
-
-def plot_results(timestamps, counts):
-    """Plot the number of white pixels for each timestamp."""
-    plt.figure(figsize=(10, 6))
-    plt.plot(timestamps, counts, marker='o')
-    plt.xlabel('Timestamp')
-    plt.ylabel('Volume (pixels)')
-    plt.title('Vvolume over time')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
-
 
 
 def main(args):
     # filter data
     all_data = read_dat_log(args.dat_file_root, args.dataset_root)
-
 
     for timestamp in range(args.start_timestamp, args.end_timestamp, args.interval):
         time_Myr = timestamp2time_Myr(timestamp)
