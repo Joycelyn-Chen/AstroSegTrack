@@ -125,7 +125,7 @@ def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_roo
         lower_volume = associate_slices_within_cube(center_z, 1000, image_paths, mask, mask_dir_root, timestamp, 1)
 
             
-    return upper_volume + lower_volume
+    return upper_volume + lower_volume, mask
 
 
 
