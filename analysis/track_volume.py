@@ -49,7 +49,7 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_roo
             break
     return volume
 
-def trace_current_timestamp(timestamp, image_paths, filtered_data, output_root):
+def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
 
     for SN_num in range(filtered_data.shape[0]):        # should execute only once
         posx_pc = int(filtered_data.iloc[SN_num]["posx_pc"])
@@ -119,27 +119,32 @@ def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_roo
 
 
 
-def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, timestamp_bound, output_root):
+def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, timestamp_bound, output_root, disappear_thres):
     accumulated_areas = {}
     timestamps = range(start_timestamp + 1, start_timestamp + timestamp_bound + 1)  # Adjust end_timestamp as needed
     blob_disappeared = False
 
     image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(start_timestamp), '*.jpg'))) # List of image paths for this timestamp
-    volume, center_mask, bbox = trace_current_timestamp(start_timestamp, image_paths, filtered_df, output_root)
+    volume, center_mask, bbox = trace_first_timestamp(start_timestamp, image_paths, filtered_df, output_root)
     previous_mask = center_mask
+
+    #DEBUG
+    print(f"Done tracing first timestamp {start_timestamp}...")
 
     for timestamp in timestamps:
         if blob_disappeared:
             break
         
-        
         volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root)
-        if compute_iou(previous_mask, center_mask) < 0.2:
+        if compute_iou(previous_mask, center_mask) < disappear_thres:
             blob_disappeared = True
             continue
         previous_mask = center_mask
 
         accumulated_areas[timestamp] = accumulated_areas.get(timestamp, 0) + volume         #TODO: might need to change this
+
+        #DEBUG
+        print(f"Done tracing {timestamp}... volume = {volume}")
 
 
     return accumulated_areas, start_timestamp, timestamp - 1, bbox  # Return the range of timestamps where the blob was present
@@ -154,6 +159,9 @@ def plot_accumulated_volumes(accumulated_areas, output_root):
     plt.title('Accumulated Volume Over Time')
     # plt.show()
     plt.savefig(os.path.join(output_root, 'volume.png'))
+
+    #DEBUG
+    print(f"Volume chart saved at: {os.path.join(output_root, 'volume.png')}")
 
 def count_data_records(df, start_time_Myr, end_time_Myr, bbox):
     # Filter DataFrame based on time and position criteria
@@ -177,13 +185,13 @@ def main(args):
 
     if not filtered_df.empty:
         _ = ensure_dir(args.output_root)
-        accumulated_volumes, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root)
+        accumulated_volumes, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
         plot_accumulated_volumes(accumulated_volumes, args.output_root)
 
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
         
         data_count = count_data_records(all_data_df, start_ts, end_ts, bbox)
-        print(f"Count of data records between timestamps {start_ts} and {end_ts}: {data_count}")
+        print(f"\nCount of data records between timestamps {start_ts} and {end_ts}: {data_count}")
     else:
         print("No data records match the specified criteria.")
 
@@ -199,6 +207,7 @@ if __name__ == "__main__":
     parser.add_argument("--interval", help="Specify the interval between timestamps", default = 1, type = int)
     parser.add_argument("--center_z_pc", help="Specify the center position of SN in pc", type = int)            # -44
     parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/Isolated_case")
+    parser.add_argument("--disappear_thres", help="Specify disappear iou threshold", default = 0.2, type = float) 
 
 
   
