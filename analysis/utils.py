@@ -1,13 +1,21 @@
 import os
-import argparse
-import yt
-from data.utils import *
-
 import cv2
 import numpy as np
 import pandas as pd
-from PIL import Image
-import matplotlib.pyplot as plt
+
+low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
+
+def sort_image_paths(image_paths):
+    # sort the image paths accoording to their slice number
+    slice_image_paths = {}
+    for path in image_paths:
+        time = int(path.split("/")[-1].split(".")[-2].split("z")[-1])       # the time here actually refers to the z_slice, but it's only a temporary parameter, so didn't change
+        slice_image_paths[time] = path
+    
+    image_paths_sorted = []
+    for key in sorted(slice_image_paths):
+        image_paths_sorted.append(slice_image_paths[key])
+    return image_paths_sorted
 
 def read_dat_log(dat_file_root, dataset_root):
     # Only 1 log file is enough, cause they're actually copies of each other
@@ -51,6 +59,40 @@ def read_dat_log(dat_file_root, dataset_root):
     all_data.sort_values(by='time_Myr', inplace=True)
 
     return all_data
+def seconds_to_megayears(seconds):
+    return seconds / (1e6 * 365 * 24 * 3600)
+
+
+def cm2pc(cm):
+    return cm * 3.24077929e-19
+
+
+def pc2pixel(coord, x_y_z):
+    if x_y_z == "x":
+        return coord + top_z
+    elif x_y_z == "y":
+        return top_z - coord
+    elif x_y_z == "z":
+        return coord + top_z
+    return coord
+
+def pixel2pc(coord, x_y_z):
+    if x_y_z == "x":
+        return coord - top_z
+    elif x_y_z == "y":
+        return top_z - coord
+    elif x_y_z == "z":
+        return coord - top_z
+    return coord
+
+def retrieve_id(image_paths):
+    for i, path in enumerate(image_paths):
+        image_paths[i] = path.split("/")[-1][6:]
+    return image_paths
+
+def load_mask(mask_root, timestamp, mask_filename):
+    mask = cv2.imread(os.path.join(mask_root, str(timestamp), mask_filename))
+    return mask / 255
 
 def timestamp2time_Myr(timestamp):
     return (timestamp - 200) * 0.1 + 191
@@ -107,3 +149,29 @@ def SN_center_in_bubble(posx_px, posy_px, x1, y1, w, h):
     if within_range(x1, x1 + w, posx_px) and within_range(y1, y1 + h, posy_px):
         return True
     return False
+
+
+def within_range(min, max, target):
+    if min < target and max > target:
+        return True
+    return False
+
+def read_info(SN_info_file, info_col):
+    default_output = 0
+    try: 
+        with open(SN_info_file, "r") as f:
+            data = f.readlines()
+        for line in data:
+            line = line.strip("\n")
+            if(line.split()[0] == info_col):
+                if(info_col == "time_Myr"):
+                    return round(float(line.split()[1]), 1)
+                return int(float(line.split()[1]))
+            
+    except FileNotFoundError as e:
+        print(f"File {SN_info_file} not found.")
+        return default_output
+    
+    except Exception as e:
+        print(f"Error reading {SN_info_file}")
+        return default_output
