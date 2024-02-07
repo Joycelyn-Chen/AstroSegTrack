@@ -102,7 +102,7 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
     return upper_volume + lower_volume, mask, (x1, y1, w, h), mask_dir_root
 
 
-def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_root):
+def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_root, previous_mask):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
     
@@ -118,11 +118,11 @@ def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_roo
             continue
         
         mask_dir_root = os.path.join(output_root, f"SN_{case_timestamp}{SN_id}")
-        mask = read_image_grayscale(os.path.join(mask_dir_root, str(case_timestamp), f"{img_prefix}{case_timestamp}_z{center_z}.png"))
+        mask = read_image_grayscale(os.path.join(mask_dir_root, str(timestamp - 1), f"{img_prefix}{timestamp - 1}_z{center_z}.png"))
 
         image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(timestamp), f"{img_prefix}{timestamp}_z*.png"))) 
-        upper_volume = associate_slices_within_cube(center_z - 1, 0, image_paths, mask, mask_dir_root, timestamp, -1)
-        lower_volume = associate_slices_within_cube(center_z, 1000, image_paths, mask, mask_dir_root, timestamp, 1)
+        upper_volume = associate_slices_within_cube(center_z - 1, 0, image_paths, previous_mask, mask_dir_root, timestamp, -1)
+        lower_volume = associate_slices_within_cube(center_z, 1000, image_paths, previous_mask, mask_dir_root, timestamp, 1)
 
             
     return upper_volume + lower_volume, mask
@@ -145,7 +145,7 @@ def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, tim
         if blob_disappeared:
             break
         
-        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root, output_root)
+        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root, output_root, previous_mask)
         if compute_iou(previous_mask, center_mask) < disappear_thres:
             blob_disappeared = True
             continue
