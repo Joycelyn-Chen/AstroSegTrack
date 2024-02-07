@@ -39,9 +39,6 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_roo
         for label in range(2, num_labels):
             current_mask = labels == label
 
-            #DEBUG
-            print(current_mask)
-
             if compute_iou(current_mask, tmp_mask) >= 0.6:      # if found a match in this slice
                 tmp_mask = current_mask
                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
