@@ -45,7 +45,7 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_roo
             if compute_iou(current_mask, tmp_mask) >= 0.6:      # if found a match in this slice
                 tmp_mask = current_mask
                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
-                cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), current_mask * 255)
+                cv2.imwrite(os.path.join(ensure_dir(os.path.join(mask_dir_root, str(timestamp))), mask_name), current_mask * 255)
 
                 # log volume for each slice
                 area = stats[label, cv2.CC_STAT_AREA]
@@ -90,8 +90,9 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
 
                 # then it should save the mask to the new mask folder
                 mask_dir_root = ensure_dir(os.path.join(output_root, f"SN_{timestamp}{i}"))
-                mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
-                cv2.imwrite(ensure_dir(os.path.join(mask_dir_root, str(timestamp), mask_name)), mask * 255)
+                mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"   
+
+                cv2.imwrite(os.path.join(ensure_dir(os.path.join(mask_dir_root, str(timestamp))), mask_name), mask * 255)
                 with open(os.path.join(mask_dir_root, f"SN_{timestamp}{i}_info.txt"), "w") as f:
                     f.write(str(filtered_data.iloc[SN_num]))
 
