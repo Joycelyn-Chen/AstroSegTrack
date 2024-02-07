@@ -85,7 +85,7 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
                 mask = labels == i
 
                 #DEBUG
-                print(f"mask shape: {mask.shape}")
+                print(f"mask shape: {mask}")
 
                 # then it should save the mask to the new mask folder
                 mask_dir_root = ensure_dir(os.path.join(output_root, f"SN_{timestamp}{i}"))
