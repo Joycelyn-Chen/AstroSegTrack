@@ -140,7 +140,7 @@ def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, tim
         if blob_disappeared:
             break
         
-        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root)
+        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root, output_root)
         if compute_iou(previous_mask, center_mask) < disappear_thres:
             blob_disappeared = True
             continue
