@@ -38,6 +38,10 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_roo
 
         for label in range(2, num_labels):
             current_mask = labels == label
+
+            #DEBUG
+            print(current_mask)
+
             if compute_iou(current_mask, tmp_mask) >= 0.6:      # if found a match in this slice
                 tmp_mask = current_mask
                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     
@@ -83,9 +87,6 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
             if SN_center_in_bubble(pc2pixel(posx_pc, x_y_z = "x"), pc2pixel(posy_pc, x_y_z = "y"), x1, y1, w, h):
                 # it is a new SN case, construct a new profile for the SN case
                 mask = labels == i
-
-                #DEBUG
-                print(f"mask shape: {mask}")
 
                 # then it should save the mask to the new mask folder
                 mask_dir_root = ensure_dir(os.path.join(output_root, f"SN_{timestamp}{i}"))
