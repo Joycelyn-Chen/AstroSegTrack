@@ -13,6 +13,7 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root
     tmp_mask = mask
 
     for img_path_id in range(start_z, end_z, direction):    # direction: +1 tracking down, -1 tracking up
+
         image_path = image_paths[img_path_id]
         image = read_image_grayscale(image_path)
         binary_image = apply_otsus_thresholding(image)
@@ -88,7 +89,7 @@ def trace_current_timestamp(mask_candidates, timestamp, image_paths, all_data, d
 
 
 
-def associate_subsequent_timestamp(timestamp, start_timestamp, end_timestamp, incr, dataset_root, date):
+def associate_subsequent_timestamp(timestamp, start_timestamp, end_timestamp, incr, dataset_root, date, raw_img_format):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
     
@@ -108,7 +109,7 @@ def associate_subsequent_timestamp(timestamp, start_timestamp, end_timestamp, in
             print(f"Associating case SN_{timestamp}{SN_id}: {time}")
 
 
-            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z*.png"))) 
+            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z*.{raw_img_format}"))) 
 
             # tracking up
             associate_slices_within_cube(center_z - 1, 0, image_paths, mask, dataset_root, timestamp, time, SN_id, -1, date)
@@ -173,7 +174,7 @@ def main(args):
         # Refresh mask candidates, so that we can record those SN events that happen in the same blob at a later time (move out of the for loop if not wanna record repeating blobs anymore)
         mask_candidates = []
 
-        image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.png'))) # List of image paths for this timestamp
+        image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), f'*.{args.raw_img_format}'))) # List of image paths for this timestamp
 
 
         # DEBUG 
@@ -187,7 +188,7 @@ def main(args):
         print("Start associating with the subsequent timestamp")
 
         # associate with all later timestamp
-        associate_subsequent_timestamp(timestamp, timestamp + args.incr, int(args.end_timestamp), args.incr, args.dataset_root, args.date)
+        associate_subsequent_timestamp(timestamp, timestamp + args.incr, int(args.end_timestamp), args.incr, args.dataset_root, args.date, args.raw_img_format)
         
         # DEBUG
         print(f"Done associating for timestamp {timestamp}\n")
@@ -202,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_root", help="The root directory to the dataset")          # "../Dataset"
     parser.add_argument("--dat_file_root", help="The root directory to the SNfeedback files, relative to dataset root")         # "SNfeedback"
     parser.add_argument("--date", help="Enter today's date in mmdd format")
+    parser.add_argument("--raw_img_format", help=".png or .jpg for raw images", default="jpg")
 
     # python Data/gt_construct.py --start_timestamp 200 --end_timestamp 219 --incr 10 --dataset_root "../../Dataset" --dat_file_root "SNfeedback" --date 0122 > output.txt 2>&1 &
     
