@@ -21,7 +21,7 @@ def filter_data(df, time_range, posz_pc_range):
     else:
         lower_z, upper_z = posz_pc_range[1], posz_pc_range[0]
 
-    return df[(df['time_Myr'] >= time_range[0] & df['time_Myr'] < time_range[1]) & (df['posz_pc'] >= lower_z & df['posz_pc'] <= upper_z)]
+    return df[(df['time_Myr'] >= time_range[0]) & (df['time_Myr'] < time_range[1]) & (df['posz_pc'] >= lower_z) & (df['posz_pc'] <= upper_z)]
 
 
 def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_root, timestamp, direction):
