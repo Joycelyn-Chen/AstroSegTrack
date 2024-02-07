@@ -107,6 +107,9 @@ def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_roo
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
     
     SN_ids = retrieve_id(glob.glob(os.path.join(output_root, f'SN_{case_timestamp}*'))) 
+
+    #DEBUG
+    print(f"Associating {timestamp}")
     
     for SN_id in SN_ids:  
         center_z = pc2pixel(read_info(os.path.join(output_root, f"SN_{case_timestamp}{SN_id}", f"SN_{case_timestamp}{SN_id}_info.txt"), info_col = "posz_pc"), x_y_z = "z")
