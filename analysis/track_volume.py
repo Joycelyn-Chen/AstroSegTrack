@@ -129,7 +129,7 @@ def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, tim
     timestamps = range(start_timestamp + 1, start_timestamp + timestamp_bound + 1)  # Adjust end_timestamp as needed
     blob_disappeared = False
 
-    image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(start_timestamp), '*.jpg'))) # List of image paths for this timestamp
+    image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(start_timestamp), '*.png'))) # List of image paths for this timestamp
     volume, center_mask, bbox = trace_first_timestamp(start_timestamp, image_paths, filtered_df, output_root)
     previous_mask = center_mask
 
