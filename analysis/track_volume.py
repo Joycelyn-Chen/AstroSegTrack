@@ -99,7 +99,7 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
                 lower_volume = associate_slices_within_cube(center_slice_z, 1000, image_paths, mask, mask_dir_root, timestamp, 1)
                 break
                 
-    return upper_volume + lower_volume, mask, (x1, y1, w, h)
+    return upper_volume + lower_volume, mask, (x1, y1, w, h), mask_dir_root
 
 
 def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_root):
@@ -135,7 +135,7 @@ def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, tim
     blob_disappeared = False
 
     image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(start_timestamp), '*.png'))) # List of image paths for this timestamp
-    volume, center_mask, bbox = trace_first_timestamp(start_timestamp, image_paths, filtered_df, output_root)
+    volume, center_mask, bbox, mask_dir_root = trace_first_timestamp(start_timestamp, image_paths, filtered_df, output_root)
     previous_mask = center_mask
 
     #DEBUG
@@ -157,7 +157,7 @@ def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, tim
         print(f"Done tracing {timestamp}... volume = {volume}")
 
 
-    return accumulated_areas, start_timestamp, timestamp - 1, bbox  # Return the range of timestamps where the blob was present
+    return accumulated_areas, start_timestamp, timestamp - 1, bbox, mask_dir_root  # Return the range of timestamps where the blob was present
 
 def plot_accumulated_volumes(accumulated_areas, output_root):
     times = list(accumulated_areas.keys())
@@ -196,8 +196,8 @@ def main(args):
     
     if not filtered_df.empty:
         _ = ensure_dir(args.output_root)
-        accumulated_volumes, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
-        plot_accumulated_volumes(accumulated_volumes, args.output_root)
+        accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
+        plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
 
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
         
