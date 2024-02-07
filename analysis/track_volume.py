@@ -91,7 +91,7 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
                 # then it should save the mask to the new mask folder
                 mask_dir_root = ensure_dir(os.path.join(output_root, f"SN_{timestamp}{i}"))
                 mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
-                cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), mask * 255)
+                cv2.imwrite(ensure_dir(os.path.join(mask_dir_root, str(timestamp), mask_name)), mask * 255)
                 with open(os.path.join(mask_dir_root, f"SN_{timestamp}{i}_info.txt"), "w") as f:
                     f.write(str(filtered_data.iloc[SN_num]))
 
