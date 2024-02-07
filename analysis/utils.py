@@ -102,3 +102,8 @@ def retrieve_id(image_paths):
     for i, path in enumerate(image_paths):
         image_paths[i] = path.split("/")[-1][6:]
     return image_paths
+
+def SN_center_in_bubble(posx_px, posy_px, x1, y1, w, h):
+    if within_range(x1, x1 + w, posx_px) and within_range(y1, y1 + h, posy_px):
+        return True
+    return False

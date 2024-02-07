@@ -49,7 +49,7 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_roo
             break
     return volume
 
-def trace_current_timestamp(timestamp, image_paths, filtered_data, dataset_root):
+def trace_current_timestamp(timestamp, image_paths, filtered_data, output_root):
 
     for SN_num in range(filtered_data.shape[0]):        # should execute only once
         posx_pc = int(filtered_data.iloc[SN_num]["posx_pc"])
@@ -80,7 +80,7 @@ def trace_current_timestamp(timestamp, image_paths, filtered_data, dataset_root)
                 mask = labels == i
 
                 # then it should save the mask to the new mask folder
-                mask_dir_root = ensure_dir(os.path.join(dataset_root, 'Isolated_case', f"SN_{timestamp}{i}"))
+                mask_dir_root = ensure_dir(os.path.join(output_root, f"SN_{timestamp}{i}"))
                 mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
                 cv2.imwrite(os.path.join(mask_dir_root, str(timestamp), mask_name), mask * 255)
                 with open(os.path.join(mask_dir_root, f"SN_{timestamp}{i}_info.txt"), "w") as f:
@@ -95,19 +95,19 @@ def trace_current_timestamp(timestamp, image_paths, filtered_data, dataset_root)
     return upper_volume + lower_volume, mask, (x1, y1, w, h)
 
 
-def associate_next_timestamp(case_timestamp, timestamp, dataset_root):
+def associate_next_timestamp(case_timestamp, timestamp, dataset_root, output_root):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
     
-    SN_ids = retrieve_id(glob.glob(os.path.join(dataset_root, 'Isolated_case', f'SN_{case_timestamp}*'))) 
+    SN_ids = retrieve_id(glob.glob(os.path.join(output_root, f'SN_{case_timestamp}*'))) 
     
     for SN_id in SN_ids:  
-        center_z = pc2pixel(read_info(os.path.join(dataset_root, 'Isolated_case', f"SN_{case_timestamp}{SN_id}", f"SN_{case_timestamp}{SN_id}_info.txt"), info_col = "posz_pc"), x_y_z = "z")
+        center_z = pc2pixel(read_info(os.path.join(output_root, f"SN_{case_timestamp}{SN_id}", f"SN_{case_timestamp}{SN_id}_info.txt"), info_col = "posz_pc"), x_y_z = "z")
         # ignore cases if there's no info file
         if center_z == top_z:
             continue
         
-        mask_dir_root = os.path.join(dataset_root, 'Isolated_case', f"SN_{case_timestamp}{SN_id}")
+        mask_dir_root = os.path.join(output_root, f"SN_{case_timestamp}{SN_id}")
         mask = read_image_grayscale(os.path.join(mask_dir_root, str(case_timestamp), f"{img_prefix}{case_timestamp}_z{center_z}.png"))
 
         image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(timestamp), f"{img_prefix}{timestamp}_z*.png"))) 
@@ -119,13 +119,13 @@ def associate_next_timestamp(case_timestamp, timestamp, dataset_root):
 
 
 
-def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, timestamp_bound):
+def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, timestamp_bound, output_root):
     accumulated_areas = {}
     timestamps = range(start_timestamp + 1, start_timestamp + timestamp_bound + 1)  # Adjust end_timestamp as needed
     blob_disappeared = False
 
     image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(start_timestamp), '*.jpg'))) # List of image paths for this timestamp
-    volume, center_mask, bbox = trace_current_timestamp(start_timestamp, image_paths, filtered_df, dataset_root)
+    volume, center_mask, bbox = trace_current_timestamp(start_timestamp, image_paths, filtered_df, output_root)
     previous_mask = center_mask
 
     for timestamp in timestamps:
@@ -144,7 +144,7 @@ def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, tim
 
     return accumulated_areas, start_timestamp, timestamp - 1, bbox  # Return the range of timestamps where the blob was present
 
-def plot_accumulated_volumes(accumulated_areas, dataset_root):
+def plot_accumulated_volumes(accumulated_areas, output_root):
     times = list(accumulated_areas.keys())
     volumes = list(accumulated_areas.values())
 
@@ -153,13 +153,20 @@ def plot_accumulated_volumes(accumulated_areas, dataset_root):
     plt.ylabel('Accumulated Volume (pixels)')
     plt.title('Accumulated Volume Over Time')
     # plt.show()
-    plt.savefig(os.path.join(dataset_root, 'Isolated_case', 'volume.png'))
+    plt.savefig(os.path.join(output_root, 'volume.png'))
 
-def count_data_records(df, start_time_Myr, end_time_Myr, posx, posy, posz):
+def count_data_records(df, start_time_Myr, end_time_Myr, bbox):
     # Filter DataFrame based on time and position criteria
-    filtered_df = df[(df['time_Myr'].between(start_time_Myr, end_time_Myr)) & 
-                     (df['posx_pc'] == posx) & (df['posy_pc'] == posy) & (df['posz_pc'] == posz)]
-    return len(filtered_df)
+    filtered_df = df[(df['time_Myr'].between(start_time_Myr, end_time_Myr))] # & df['posz_pc'].between() 
+    
+    for i in range(len(filtered_df)):
+        posx_pc = int(filtered_df.iloc[i]['posx_pc'])
+        posy_pc = int(filtered_df.iloc[i]['posy_pc'])
+        count = 0
+        if SN_center_in_bubble(pc2pixel(posx_pc, x_y_z = "x"), pc2pixel(posy_pc, x_y_z = "y"), bbox[0], bbox[1], bbox[2], bbox[3]):
+            count += 1
+    
+    return count
 
 def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
@@ -169,13 +176,13 @@ def main(args):
     filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (10 * (int(args.center_z_pc / 10) + 1), 10 * (int(args.center_z_pc / 10) - 1)))
 
     if not filtered_df.empty:
-        _ = ensure_dir(os.path.join(args.dataset_root, 'Isolated_case'))
-        accumulated_volumns, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound)
-        plot_accumulated_volumes(accumulated_volumns)
+        _ = ensure_dir(args.output_root)
+        accumulated_volumes, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root)
+        plot_accumulated_volumes(accumulated_volumes, args.output_root)
 
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
-        posx, posy, posz = filtered_df[['posx_pc', 'posy_pc', 'posz_pc']].iloc[0]
-        data_count = count_data_records(all_data_df, start_ts, end_ts, posx, posy, posz)
+        
+        data_count = count_data_records(all_data_df, start_ts, end_ts, bbox)
         print(f"Count of data records between timestamps {start_ts} and {end_ts}: {data_count}")
     else:
         print("No data records match the specified criteria.")
@@ -191,14 +198,10 @@ if __name__ == "__main__":
     parser.add_argument("--timestamp_bound", help="Specify the end timestamp for tracking", default = 60, type = int)
     parser.add_argument("--interval", help="Specify the interval between timestamps", default = 1, type = int)
     parser.add_argument("--center_z_pc", help="Specify the center position of SN in pc", type = int)            # -44
+    parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/Isolated_case")
 
-    parser.add_argument("--delta_t", help="Specify the delta t", default = 0.01, type = float) 
-    parser.add_argument("--track_Myr", help="Specify how many Myr you wanna track", default = 6, type = int)    
-    parser.add_argument("--dataset_root", help="Path to dataset root", default = "../../Dataset")   
-    parser.add_argument("--dat_file_root", help="The root directory to the SNfeedback files, relative to dataset root")         # "SNfeedback"
-    parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/ProjectionPlots")   
-    parser.add_argument("--hdf5_root", help="Path to HDF5 root", default = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc")   
-    
-    # python observe_SN_blast.py --start_timestamp 201 --end_timestamp 210 --interval 1 --delta_t 0.1 --track_Myr 6 --dataset_root "../../Dataset" --dat_file_root "SNfeedback" --output_root "../../Dataset/Explosions" --hdf5_root /home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original
+
+  
+    # python analysis/track_volume.py --start_timestamp 201 --end_timestamp 210 --interval 1 --delta_t 0.1 --track_Myr 6 --dataset_root "../../Dataset" --dat_file_root "SNfeedback" --output_root "../../Dataset/Explosions" --hdf5_root /home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original
     args = parser.parse_args()
     main(args)
