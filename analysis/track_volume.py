@@ -183,7 +183,7 @@ def main(args):
     
     
     # filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (100 * (int(args.center_z_pc / 10) + 1), 100 * (int(args.center_z_pc / 10) - 1)))
-    filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (500, -500))
+    filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr + 0.1), posz_pc_range = (500, -500))
 
     #DEBUG
     print(filtered_df)
