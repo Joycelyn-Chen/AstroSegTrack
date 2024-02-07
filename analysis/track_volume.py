@@ -202,6 +202,6 @@ if __name__ == "__main__":
 
 
   
-    # python analysis/track_volume.py --start_timestamp 201 --end_timestamp 210 --interval 1 --delta_t 0.1 --track_Myr 6 --dataset_root "../../Dataset" --dat_file_root "SNfeedback" --output_root "../../Dataset/Explosions" --hdf5_root /home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original
+    # python analysis/track_volume.py --dataset_root "../../Dataset" --dat_file_root "SNfeedback" --output_root "../../Dataset/Isolated_case" --start_timestamp 204 --timestamp_bound 60 --interval 1 --center_z_pc -44
     args = parser.parse_args()
     main(args)
