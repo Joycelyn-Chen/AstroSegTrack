@@ -180,21 +180,24 @@ def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
     
     start_time_Myr = timestamp2time_Myr(args.start_timestamp)
-    print(f"z range: {10 * (int(args.center_z_pc / 10) + 1)} ~ {10 * (int(args.center_z_pc / 10) - 1)}")
     
-    filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (10 * (int(args.center_z_pc / 10) + 1), 10 * (int(args.center_z_pc / 10) - 1)))
+    
+    filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (100 * (int(args.center_z_pc / 10) + 1), 100 * (int(args.center_z_pc / 10) - 1)))
 
-    if not filtered_df.empty:
-        _ = ensure_dir(args.output_root)
-        accumulated_volumes, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
-        plot_accumulated_volumes(accumulated_volumes, args.output_root)
+    #DEBUG
+    print(filtered_df)
 
-        # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
+    # if not filtered_df.empty:
+    #     _ = ensure_dir(args.output_root)
+    #     accumulated_volumes, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
+    #     plot_accumulated_volumes(accumulated_volumes, args.output_root)
+
+    #     # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
         
-        data_count = count_data_records(all_data_df, start_ts, end_ts, bbox)
-        print(f"\nCount of data records between timestamps {start_ts} and {end_ts}: {data_count}")
-    else:
-        print("No data records match the specified criteria.")
+    #     data_count = count_data_records(all_data_df, start_ts, end_ts, bbox)
+    #     print(f"\nCount of data records between timestamps {start_ts} and {end_ts}: {data_count}")
+    # else:
+    #     print("No data records match the specified criteria.")
 
 
 
