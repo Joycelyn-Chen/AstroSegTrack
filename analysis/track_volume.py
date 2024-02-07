@@ -163,7 +163,7 @@ def plot_accumulated_volumes(accumulated_areas, output_root):
     times = list(accumulated_areas.keys())
     volumes = list(accumulated_areas.values())
 
-    plt.plot(times, volumes, 'bo')
+    plt.plot(times, volumes, 'bo-')
     plt.xlabel('Time (Myr)')
     plt.ylabel('Accumulated Volume (pixels)')
     plt.title('Accumulated Volume Over Time')
