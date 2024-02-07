@@ -180,7 +180,7 @@ def main(args):
     all_data_df = read_dat_log(args.dat_file_root, args.dataset_root)
     
     start_time_Myr = timestamp2time_Myr(args.start_timestamp)
-    print(f"time range: {start_time_Myr - (args.interval / 10)} ~ {start_time_Myr}")
+    print(f"z range: {10 * (int(args.center_z_pc / 10) + 1)} ~ {10 * (int(args.center_z_pc / 10) - 1)}")
     
     filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (10 * (int(args.center_z_pc / 10) + 1), 10 * (int(args.center_z_pc / 10) - 1)))
 
