@@ -16,7 +16,7 @@ low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 50
 
 def filter_data(df, time_range, posz_pc_range):
     # Filter the DataFrame based on specified conditions
-    return df[(df['time_Myr'].between(time_range[0], time_range[1])) & (df['posz_pc'].between(posz_pc_range[0], posz_pc_range[1]))]
+    return df[(df['time_Myr'] >= time_range[0] & df['time_Myr'] < time_range[1]) & (df['posz_pc'].between(posz_pc_range[0], posz_pc_range[1]))]
 
 
 def associate_slices_within_cube(start_z, end_z, image_paths, mask, mask_dir_root, timestamp, direction):
