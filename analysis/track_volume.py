@@ -84,6 +84,9 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
                 # it is a new SN case, construct a new profile for the SN case
                 mask = labels == i
 
+                #DEBUG
+                print(f"mask shape: {mask.shape}")
+
                 # then it should save the mask to the new mask folder
                 mask_dir_root = ensure_dir(os.path.join(output_root, f"SN_{timestamp}{i}"))
                 mask_name = f"{image_paths[0].split('/')[-1].split('.')[-2]}.png"     
