@@ -1,7 +1,6 @@
 import os
 import argparse
 import yt
-from data.utils import *
 
 import cv2
 import numpy as np
@@ -93,90 +92,72 @@ def trace_current_timestamp(timestamp, image_paths, filtered_data, dataset_root)
                 lower_volume = associate_slices_within_cube(center_slice_z, 1000, image_paths, mask, mask_dir_root, timestamp, 1)
                 break
                 
-    return upper_volume + lower_volume + area, mask
+    return upper_volume + lower_volume, mask, (x1, y1, w, h)
 
 
-def associate_next_timestamp(timestamp, start_timestamp, end_timestamp, incr, dataset_root, date):
+def associate_next_timestamp(case_timestamp, timestamp, dataset_root):
     # loop through all slices in the mask folder
     img_prefix = "sn34_smd132_bx5_pe300_hdf5_plt_cnt_0"
     
-    SN_ids = retrieve_id(glob.glob(os.path.join(dataset_root, f'SN_cases_{date}', f'SN_{timestamp}*'))) 
+    SN_ids = retrieve_id(glob.glob(os.path.join(dataset_root, 'Isolated_case', f'SN_{case_timestamp}*'))) 
     
     for SN_id in SN_ids:  
-        center_z = pc2pixel(read_info(os.path.join(dataset_root, f'SN_cases_{date}', f"SN_{timestamp}{SN_id}", f"SN_{timestamp}{SN_id}_info.txt"), info_col = "posz_pc"), x_y_z = "z")
+        center_z = pc2pixel(read_info(os.path.join(dataset_root, 'Isolated_case', f"SN_{case_timestamp}{SN_id}", f"SN_{case_timestamp}{SN_id}_info.txt"), info_col = "posz_pc"), x_y_z = "z")
         # ignore cases if there's no info file
         if center_z == top_z:
             continue
         
-        mask_dir_root = os.path.join(dataset_root, 'Isolated_case', f"SN_{timestamp}{SN_id}")
-        mask = read_image_grayscale(os.path.join(mask_dir_root, str(timestamp), f"{img_prefix}{timestamp}_z{center_z}.png"))
+        mask_dir_root = os.path.join(dataset_root, 'Isolated_case', f"SN_{case_timestamp}{SN_id}")
+        mask = read_image_grayscale(os.path.join(mask_dir_root, str(case_timestamp), f"{img_prefix}{case_timestamp}_z{center_z}.png"))
 
+        image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(timestamp), f"{img_prefix}{timestamp}_z*.png"))) 
+        upper_volume = associate_slices_within_cube(center_z - 1, 0, image_paths, mask, mask_dir_root, timestamp, -1)
+        lower_volume = associate_slices_within_cube(center_z, 1000, image_paths, mask, mask_dir_root, timestamp, 1)
 
-        for time in range(start_timestamp, end_timestamp, incr):
-            # Debug
-            print(f"Associating case SN_{timestamp}{SN_id}: {time}")
-
-
-            image_paths = sort_image_paths(glob.glob(os.path.join(dataset_root, 'raw_img', str(time), f"{img_prefix}{time}_z*.png"))) 
-
-            # tracking up
-            associate_slices_within_cube(center_z - 1, 0, image_paths, mask, mask_dir_root, timestamp, -1)
-            # tracking down
-            associate_slices_within_cube(center_z, 1000, image_paths, mask, mask_dir_root, timestamp, 1)
-    return volume
+            
+    return upper_volume + lower_volume
 
 
 
-def segment_and_accumulate_areas(start_timestamp, df, dataset_root, timestamp_bound):
+def segment_and_accumulate_areas(start_timestamp, filtered_df, dataset_root, timestamp_bound):
     accumulated_areas = {}
-    timestamps = range(start_timestamp, start_timestamp + timestamp_bound + 1)  # Adjust end_timestamp as needed
+    timestamps = range(start_timestamp + 1, start_timestamp + timestamp_bound + 1)  # Adjust end_timestamp as needed
     blob_disappeared = False
+
+    image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(start_timestamp), '*.jpg'))) # List of image paths for this timestamp
+    volume, center_mask, bbox = trace_current_timestamp(start_timestamp, image_paths, filtered_df, dataset_root)
+    previous_mask = center_mask
 
     for timestamp in timestamps:
         if blob_disappeared:
             break
-
-        hdf5_file = f"{dataset_root}/file_{timestamp}.hdf5"  # Adjust path as needed
-        blob_position = df[['posx_pc', 'posy_pc', 'posz_pc']].iloc[0]  # Assuming single row in df
-
-        # Assuming trace_current_timestamp() processes the hdf5 file, segments the blob, and returns the area and a mask
         
-        image_paths = sort_image_paths(glob.glob(os.path.join(args.dataset_root, 'raw_img', str(timestamp), '*.jpg'))) # List of image paths for this timestamp
+        
+        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root)
+        if compute_iou(previous_mask, center_mask) < 0.2:
+            blob_disappeared = True
+            continue
+        previous_mask = center_mask
 
-        volume, center_mask = trace_current_timestamp()
+        accumulated_areas[timestamp] = accumulated_areas.get(timestamp, 0) + volume         #TODO: might need to change this
 
-        if timestamp == start_timestamp:
-            previous_mask = center_mask
-        else:
-            iou = compute_iou(previous_mask, center_mask)  # Assuming a function to compute Intersection over Union
-            if iou < 0.2:
-                blob_disappeared = True
-                continue
-            previous_mask = center_mask
 
-        accumulated_areas[timestamp] = accumulated_areas.get(timestamp, 0) + volume
+    return accumulated_areas, start_timestamp, timestamp - 1, bbox  # Return the range of timestamps where the blob was present
 
-        # Save mask to 'isolated_masks' folder
-        mask_filename = f"{dataset_root}/isolated_masks/mask_{timestamp}.png"
-        cv2.imwrite(mask_filename, center_mask.astype(np.uint8) * 255)  # Convert boolean mask to uint8
-
-    return accumulated_areas, start_timestamp, timestamp - 1  # Return the range of timestamps where the blob was present
-
-def plot_accumulated_volumes(accumulated_areas):
-    import matplotlib.pyplot as plt
-
+def plot_accumulated_volumes(accumulated_areas, dataset_root):
     times = list(accumulated_areas.keys())
     volumes = list(accumulated_areas.values())
 
-    plt.plot(times, volumes)
+    plt.plot(times, volumes, 'bo')
     plt.xlabel('Time (Myr)')
-    plt.ylabel('Accumulated Volume')
+    plt.ylabel('Accumulated Volume (pixels)')
     plt.title('Accumulated Volume Over Time')
-    plt.show()
+    # plt.show()
+    plt.savefig(os.path.join(dataset_root, 'Isolated_case', 'volume.png'))
 
-def count_data_records(df, start_timestamp, end_timestamp, posx, posy, posz):
+def count_data_records(df, start_time_Myr, end_time_Myr, posx, posy, posz):
     # Filter DataFrame based on time and position criteria
-    filtered_df = df[(df['time_Myr'].between(start_timestamp, end_timestamp)) & 
+    filtered_df = df[(df['time_Myr'].between(start_time_Myr, end_time_Myr)) & 
                      (df['posx_pc'] == posx) & (df['posy_pc'] == posy) & (df['posz_pc'] == posz)]
     return len(filtered_df)
 
@@ -188,8 +169,9 @@ def main(args):
     filtered_df = filter_data(all_data_df, time_range = (start_time_Myr - (args.interval / 10), start_time_Myr), posz_pc_range = (10 * (int(args.center_z_pc / 10) + 1), 10 * (int(args.center_z_pc / 10) - 1)))
 
     if not filtered_df.empty:
-        accumulated_areas, start_ts, end_ts = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound)
-        plot_accumulated_volumes(accumulated_areas)
+        _ = ensure_dir(os.path.join(args.dataset_root, 'Isolated_case'))
+        accumulated_volumns, start_ts, end_ts, bbox = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound)
+        plot_accumulated_volumes(accumulated_volumns)
 
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
         posx, posy, posz = filtered_df[['posx_pc', 'posy_pc', 'posz_pc']].iloc[0]
