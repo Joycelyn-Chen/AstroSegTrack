@@ -14,6 +14,9 @@ def process_timestamps(root_dir):
 
     # 1. Loop through all timestamps
     for timestamp in os.listdir(root_dir):
+        #DEBUG
+        print(f"Processing {timestamp}")
+        
         timestamp_path = os.path.join(root_dir, timestamp)
         if os.path.isdir(timestamp_path):
             total_white_pixels = 0
