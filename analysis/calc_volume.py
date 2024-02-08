@@ -16,7 +16,7 @@ def process_timestamps(root_dir):
     for timestamp in os.listdir(root_dir):
         #DEBUG
         print(f"Processing {timestamp}")
-        
+
         timestamp_path = os.path.join(root_dir, timestamp)
         if os.path.isdir(timestamp_path):
             total_white_pixels = 0
@@ -39,7 +39,7 @@ def plot_results(volume_dic, output_root):
     volumes = [volume_dic[timestamp] for timestamp in sorted_timestamps]
 
     plt.figure(figsize=(10, 6))
-    plt.plot(sorted_timestamps, volumes, marker='o-')
+    plt.plot(sorted_timestamps, volumes, marker='bo-')
     plt.xlabel('Time (Myr)')
     plt.ylabel('Accumulated Volume (pixels)')
     plt.title('Accumulated Volume Over Time')
