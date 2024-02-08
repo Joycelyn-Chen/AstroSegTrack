@@ -38,8 +38,8 @@ def plot_results(volume_dic, output_root):
     sorted_timestamps = sorted(volume_dic.keys())
     volumes = [volume_dic[timestamp] for timestamp in sorted_timestamps]
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(sorted_timestamps, volumes, marker='bo-')
+    # plt.figure(figsize=(10, 6))
+    plt.plot(sorted_timestamps, volumes, 'bo-')
     plt.xlabel('Time (Myr)')
     plt.ylabel('Accumulated Volume (pixels)')
     plt.title('Accumulated Volume Over Time')
