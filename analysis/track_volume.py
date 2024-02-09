@@ -202,7 +202,7 @@ def main(args):
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
         
         data_count = count_data_records(all_data_df, start_ts, end_ts, bbox)
-        print(f"\nCount of data records between timestamps {start_ts} and {end_ts}: {data_count}")
+        print(f"\nCount of data records between timestamps {start_ts} and {end_ts}: {data_count}\t bbox: {bbox}")
     else:
         print("No data records match the specified criteria.")
 
