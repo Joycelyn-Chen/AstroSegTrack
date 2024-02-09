@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
-
+import json
 from utils import *
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
@@ -198,6 +198,10 @@ def main(args):
         _ = ensure_dir(args.output_root)
         accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
         plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
+        
+        with open(os.path.join(mask_dir_root, "volume.json"), "w") as f:
+            json.dump(accumulated_volumes, f)
+            
 
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
         
