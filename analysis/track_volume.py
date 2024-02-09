@@ -199,8 +199,9 @@ def main(args):
         accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
         plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
         
+        accumulated_volumes_int = {k: int(v) for k, v in accumulated_volumes.items()}
         with open(os.path.join(mask_dir_root, "volume.json"), "w") as f:
-            json.dump(accumulated_volumes, f)
+            json.dump(accumulated_volumes_int, f)
             
 
         # Assuming posx_pc, posy_pc, posz_pc are the positions of the blob in the filtered_df
