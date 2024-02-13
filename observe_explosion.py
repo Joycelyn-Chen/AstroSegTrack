@@ -5,6 +5,7 @@ from data.utils import *
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 
+
 def main(args):
     # filter data
     all_data = read_dat_log(args.dat_file_root, args.dataset_root)
