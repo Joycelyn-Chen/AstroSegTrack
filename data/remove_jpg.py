@@ -19,4 +19,4 @@ if __name__ == "__main__":
 
     remove_unmatched_jpg(args.path)
 
-    # python Data/remove_jpg.py --path "../Dataset/astro"
+    # python data/remove_jpg.py --path "../Dataset/astro"
