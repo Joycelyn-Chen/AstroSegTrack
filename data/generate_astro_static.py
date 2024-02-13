@@ -28,4 +28,4 @@ if __name__ == "__main__":
     
     copy_images(args.root_dir, args.dest_dir)
 
-    # python Data/count_img.py --path_to_folder path --duplicates True
+    # python data/generate_astro_static.py --root_dir path --dest_dir path
