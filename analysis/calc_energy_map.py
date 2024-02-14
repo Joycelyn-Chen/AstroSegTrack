@@ -4,6 +4,7 @@ import yt
 import cv2 as cv
 from matplotlib import pyplot as plt
 from utils import *
+import argparse
 
 k = yt.physical_constants.kb
 mu = 1.4
@@ -42,10 +43,10 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim):
 
     timestamp_energy = {'kinetic_energy': 0, 'thermal_energy': 0, 'total_energy': 0}
 
-    masks = sorted(os.listdir(os.path.join(root_dir, timestamp)))
+    masks = sorted(os.listdir(os.path.join(root_dir, str(timestamp))))
 
     for mask in masks:
-        mask_img = cv.imread(os.path.join(root_dir, timestamp, mask), cv.IMREAD_GRAYSCALE)
+        mask_img = cv.imread(os.path.join(root_dir, str(timestamp), mask), cv.IMREAD_GRAYSCALE)
         coordinates = np.argwhere(mask_img == 255)
         z = pixel2pc(int(mask.split(".")[-2].split("z")[-1]), x_y_z="z")
 
@@ -77,8 +78,10 @@ def main(args):
     energy_data = {}
 
     for timestamp in timestamps:
-        hdf5_filename = os.path.join(root_dir, f"{args.file_prefix}{timestamp}")
-        timestamp_energy = calc_energy(hdf5_filename, root_dir, timestamp, args.xlim, args.ylim, args.zlim)
+        #DEBUG
+        print(f"Processing {timestamp}")
+        hdf5_filename = os.path.join(args.hdf5_root, f"{args.file_prefix}{timestamp}")
+        timestamp_energy = calc_energy(hdf5_filename, args.mask_root, timestamp, args.xlim, args.ylim, args.zlim)
         energy_data[timestamp] = timestamp_energy
 
 
@@ -88,7 +91,7 @@ def main(args):
     thermal_energies = [energy_data[timestamp]['thermal_energy'] for timestamp in timestamps]
     total_energies = [energy_data[timestamp]['total_energy'] for timestamp in timestamps]
 
-    plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, output_root)
+    plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, args.output_root)
 
     # Accumulated total energy
     accumulated_total_energy = sum(total_energies)
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--mask_root", help="The root directory to the dataset")          # "../Dataset"
     parser.add_argument("--hdf5_root", help="The root directory to the dataset")
     parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/Isolated_case")
-    parser.add_argument("--file_prefix", help="file prefix", default="sn34_smd132_bx5_pe300_hdf5_plt_cnt_")
+    parser.add_argument("--file_prefix", help="file prefix", default="sn34_smd132_bx5_pe300_hdf5_plt_cnt_0")
     parser.add_argument("--xlim", help="Input xlim", default = 1000, type = int)                                         # 1000 
     parser.add_argument("--ylim", help="Input ylim", default = 1000, type = int)                                         # 1000  
     parser.add_argument("--zlim", help="Input zlim", default = 1000, type = int)                                         # 1000
