@@ -41,7 +41,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_dir", help="The root directory for the hdf5 dataset")              # "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original"
     parser.add_argument("--output_root_dir", help="The root directory for the img output")          # "/home/joy0921/Desktop/Dataset/200_360/200_360_png"
-    parser.add_argument("--file_prefix", help="")                                                   # "sn34_smd132_bx5_pe300_hdf5_plt_cnt_"
+    parser.add_argument("--file_prefix", help="file prefix", default="sn34_smd132_bx5_pe300_hdf5_plt_cnt_")                                                   # "sn34_smd132_bx5_pe300_hdf5_plt_cnt_"
     parser.add_argument("--start_Myr", help="The starting Myr for data range", type = int)          # 200  
     parser.add_argument("--end_Myr", help="The end Myr for data range", type = int)                 # 210
     parser.add_argument("--offset", help="The offset for incrementing Myr", type = int)             # 1   
