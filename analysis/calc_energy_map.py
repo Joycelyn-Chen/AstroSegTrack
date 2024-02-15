@@ -14,9 +14,9 @@ m_H = yt.physical_constants.mass_hydrogen
 def plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, output_root):
     plt.figure(figsize=(10, 6))
     # plt.subplot(1, 2, 1)
-    plt.plot(timestamps, kinetic_energies, label=f'Kinetic Energy, total: {sum(kinetic_energies)} (erg/cm³)')
-    plt.plot(timestamps, thermal_energies, label=f'Thermal Energy, total: {sum(thermal_energies)} (erg/cm³)')
-    plt.plot(timestamps, total_energies, label=f'Total Energy, total: {sum(total_energies)} (erg/cm³)')
+    plt.plot(timestamps, kinetic_energies, label=f'Kinetic Energy, total: {round(sum(kinetic_energies), 3)} (erg/cm³)')
+    plt.plot(timestamps, thermal_energies, label=f'Thermal Energy, total: {round(sum(thermal_energies), 3)} (erg/cm³)')
+    plt.plot(timestamps, total_energies, label=f'Total Energy, total: {round(sum(total_energies), 3)} (erg/cm³)')
     plt.yscale('log')
     plt.xlabel('Time')
     plt.ylabel('Energy (erg/cm³)')
