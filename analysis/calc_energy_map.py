@@ -56,13 +56,13 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim):
         rho = obj["flash", "dens"][:, :, z]
         v_sq = obj["flash", "velx"][:, :, z]**2 + obj["flash", "vely"][:, :, z]**2 + obj["flash", "velz"][:, :, z]**2
 
-        kinetic_energy = (0.5 * rho * v_sq).to('erg/cm**3')
-        thermal_energy = ((3/2) * k * temp * n).to('erg/cm**3')
+        kinetic_energy = (0.5 * rho * v_sq * obj["flash", "cell_volume"][:, :, z]).to('erg')
+        thermal_energy = ((3/2) * k * temp * n * obj["flash", "cell_volume"][:, :, z]).to('erg/cm**3')
         total_energy = (kinetic_energy + thermal_energy).to('erg/cm**3')
 
         for coord in coordinates:
             x, y = coord
-            timestamp_energy['kinetic_energy'] += kinetic_energy[x, y]
+            timestamp_energy['kinetic_energy'] += kinetic_energy[x, y] 
             timestamp_energy['thermal_energy'] += thermal_energy[x, y]
             timestamp_energy['total_energy'] += total_energy[x, y]
 
