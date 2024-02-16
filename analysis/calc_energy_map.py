@@ -14,9 +14,9 @@ m_H = yt.physical_constants.mass_hydrogen
 def plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, output_root):
     plt.figure(figsize=(10, 6))
     # plt.subplot(1, 2, 1)
-    plt.plot(timestamps, kinetic_energies, label=f'Kinetic Energy, total: {round(sum(kinetic_energies), 3)} (erg/cm³)')
-    plt.plot(timestamps, thermal_energies, label=f'Thermal Energy, total: {round(sum(thermal_energies), 3)} (erg/cm³)')
-    plt.plot(timestamps, total_energies, label=f'Total Energy, total: {round(sum(total_energies), 3)} (erg/cm³)')
+    plt.plot(timestamps, kinetic_energies, label=f'Kinetic Energy (erg/cm³)')
+    plt.plot(timestamps, thermal_energies, label=f'Thermal Energy (erg/cm³)')
+    plt.plot(timestamps, total_energies, label=f'Total Energy (erg/cm³)')
     plt.yscale('log')
     plt.xlabel('Time')
     plt.ylabel('Energy (erg/cm³)')
@@ -94,8 +94,9 @@ def main(args):
     plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, args.output_root)
 
     # Accumulated total energy
-    accumulated_total_energy = sum(total_energies)
-    print(f"Accumulated Total Energy: {accumulated_total_energy} erg/cm³")
+    print(f"Accumulated Kinetic Energy: {sum(kinetic_energies)} erg/cm³")
+    print(f"Accumulated Thermal Energy: {sum(thermal_energies)} erg/cm³")
+    print(f"Accumulated Total Energy: {sum(total_energies)} erg/cm³")
 
 
 if __name__ == "__main__":
