@@ -47,7 +47,9 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim):
 
     for mask in masks:
         mask_img = cv.imread(os.path.join(root_dir, str(timestamp), mask), cv.IMREAD_GRAYSCALE)
-        coordinates = np.argwhere(mask_img == 255)
+        # coordinates = np.argwhere(mask_img == 255)
+        mask_boolean = mask_img == 255
+
         z = pixel2pc(int(mask.split(".")[-2].split("z")[-1]), x_y_z="z")
 
         temp = obj["flash", "temp"][:, :, z]
@@ -56,15 +58,21 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim):
         rho = obj["flash", "dens"][:, :, z]
         v_sq = obj["flash", "velx"][:, :, z]**2 + obj["flash", "vely"][:, :, z]**2 + obj["flash", "velz"][:, :, z]**2
 
-        kinetic_energy = (0.5 * rho * v_sq * obj["flash", "cell_volume"][:, :, z]).to('erg')
-        thermal_energy = ((3/2) * k * temp * n * obj["flash", "cell_volume"][:, :, z]).to('erg/cm**3')
-        total_energy = (kinetic_energy + thermal_energy).to('erg/cm**3')
+        cell_volume = obj["flash", "cell_volume"][:, :, z]
 
-        for coord in coordinates:
-            x, y = coord
-            timestamp_energy['kinetic_energy'] += kinetic_energy[x, y] 
-            timestamp_energy['thermal_energy'] += thermal_energy[x, y]
-            timestamp_energy['total_energy'] += total_energy[x, y]
+        kinetic_energy = (0.5 * rho * v_sq * cell_volume).to('erg')
+        thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg/cm**3')
+        # total_energy = (kinetic_energy + thermal_energy).to('erg/cm**3')
+
+        timestamp_energy['kinetic_energy'] += np.sum(kinetic_energy[mask_boolean])
+        timestamp_energy['thermal_energy'] += np.sum(thermal_energy[mask_boolean])
+        timestamp_energy['total_energy'] += np.sum(kinetic_energy[mask_boolean] + thermal_energy[mask_boolean])
+
+        # for coord in coordinates:
+        #     x, y = coord
+        #     timestamp_energy['kinetic_energy'] += kinetic_energy[x, y] 
+        #     timestamp_energy['thermal_energy'] += thermal_energy[x, y]
+        #     timestamp_energy['total_energy'] += total_energy[x, y]
 
 
     return timestamp_energy
