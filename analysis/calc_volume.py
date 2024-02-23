@@ -13,7 +13,9 @@ def process_timestamps(root_dir):
     volume_dic = {}
 
     # 1. Loop through all timestamps
-    for timestamp in os.listdir(root_dir):
+    for timestamp in sorted(os.listdir(root_dir)):
+        if not os.path.isdir(os.path.join(root_dir, timestamp)):
+            continue
         #DEBUG
         print(f"Processing {timestamp}")
 
@@ -27,8 +29,8 @@ def process_timestamps(root_dir):
                     image_path = os.path.join(timestamp_path, mask_file)
                     total_white_pixels += count_white_pixels(image_path)
 
-            # Store the total volume of white pixels for the current timestamp
-            volume_dic[timestamp] = total_white_pixels
+            # Store the total volume of white pixels for the current timestamp, and convert to pc**3
+            volume_dic[timestamp] = total_white_pixels * (3.9 **3)
 
     return volume_dic
 
@@ -39,10 +41,10 @@ def plot_results(volume_dic, output_root):
     volumes = [int(volume_dic[timestamp]) for timestamp in sorted_timestamps]
 
     # plt.figure(figsize=(10, 6))
-    plt.plot(sorted_timestamps, volumes, 'bo-')
+    plt.plot(sorted_timestamps, volumes[:-1], 'bo-')
     plt.xlabel('Time (Myr)')
-    plt.ylabel('Accumulated Volume (pixels)')
-    plt.title('Accumulated Volume Over Time')
+    plt.ylabel('Accumulated Volume (pc^3)')
+    plt.title('Volume Evolution')
     plt.xticks(rotation=45)
     # plt.tight_layout()
     
