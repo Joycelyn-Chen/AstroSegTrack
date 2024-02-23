@@ -37,11 +37,12 @@ def process_timestamps(root_dir):
 def plot_results(volume_dic, output_root):
     """Plot the volume of white pixels as a function of timestamp."""
     # Sort the dictionary by timestamp to ensure the plot is in order
-    sorted_timestamps = sorted(volume_dic.keys())
+    sorted_timestamps = sorted(volume_dic.keys())[:-1]
     volumes = [int(volume_dic[timestamp]) for timestamp in sorted_timestamps]
+    sorted_timestamps = [int(timestamp) for timestamp in sorted_timestamps]
 
     # plt.figure(figsize=(10, 6))
-    plt.plot(sorted_timestamps, volumes[:-1], 'bo-')
+    plt.plot(sorted_timestamps, volumes, 'bo-')
     plt.xlabel('Time (Myr)')
     plt.ylabel('Accumulated Volume (pc^3)')
     plt.title('Volume Evolution')

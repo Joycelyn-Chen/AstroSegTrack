@@ -14,12 +14,12 @@ m_H = yt.physical_constants.mass_hydrogen
 def plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, output_root):
     plt.figure(figsize=(10, 6))
     # plt.subplot(1, 2, 1)
-    plt.plot(timestamps, kinetic_energies, label=f'Kinetic Energy (erg/cm³)')
-    plt.plot(timestamps, thermal_energies, label=f'Thermal Energy (erg/cm³)')
-    plt.plot(timestamps, total_energies, label=f'Total Energy (erg/cm³)')
+    plt.plot(timestamps, kinetic_energies, label=f'Kinetic Energy (erg)')
+    plt.plot(timestamps, thermal_energies, label=f'Thermal Energy (erg)')
+    plt.plot(timestamps, total_energies, label=f'Total Energy (erg)')
     plt.yscale('log')
     plt.xlabel('Time')
-    plt.ylabel('Energy (erg/cm³)')
+    plt.ylabel('Energy (erg)')
     plt.legend()
 
     # plt.subplot(1, 2, 2)
@@ -61,8 +61,10 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim):
         cell_volume = obj["flash", "cell_volume"][:, :, z]
 
         kinetic_energy = (0.5 * rho * v_sq * cell_volume).to('erg')
-        thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg/cm**3')
+        thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg')
         # total_energy = (kinetic_energy + thermal_energy).to('erg/cm**3')
+        
+        print("Calculating 3 energies...\n\n")
 
         timestamp_energy['kinetic_energy'] += np.sum(kinetic_energy[mask_boolean])
         timestamp_energy['thermal_energy'] += np.sum(thermal_energy[mask_boolean])
@@ -102,9 +104,9 @@ def main(args):
     plot_energy(timestamps, kinetic_energies, thermal_energies, total_energies, args.output_root)
 
     # Accumulated total energy
-    print(f"Accumulated Kinetic Energy: {sum(kinetic_energies)} erg/cm³")
-    print(f"Accumulated Thermal Energy: {sum(thermal_energies)} erg/cm³")
-    print(f"Accumulated Total Energy: {sum(total_energies)} erg/cm³")
+    print(f"Accumulated Kinetic Energy: {sum(kinetic_energies)} erg")
+    print(f"Accumulated Thermal Energy: {sum(thermal_energies)} erg")
+    print(f"Accumulated Total Energy: {sum(total_energies)} erg")
 
 
 if __name__ == "__main__":
