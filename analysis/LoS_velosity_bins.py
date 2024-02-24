@@ -37,7 +37,7 @@ def get_velx_dens(x, y, z):
 
 velz = []
 dens = []
-coords = [(-333, -443, -91), (-323, -443, -91), (-333, -453, -91), (-323, -453, -91)]
+coords = [(-333, -443, -91)] #, (-323, -443, -91), (-333, -453, -91), (-323, -453, -91)]
 
 for coord in coords:
     new_velz, new_dens = get_velx_dens(coord[0], coord[1], coord[2])
@@ -70,3 +70,11 @@ ax.set_xlabel('Velocity (km/s)')
 ax.set_ylabel('Density (cm^-2)')
 ax.set_title('Line of Sight velosity')
 plt.savefig("LoS.png")
+
+plt.clf()
+
+fig, ax = plt.subplots()
+ax.plot(velz)
+axr = ax.twinx()
+axr.plot(dens, 'k')
+plt.savefig("LoS_dens.png")

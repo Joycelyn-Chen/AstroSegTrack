@@ -40,6 +40,9 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim, output_dir
     left_edge = arb_center - ds.quan(int(xlim / 2), 'pc')
     right_edge = arb_center + ds.quan(int(ylim / 2), 'pc')
     obj = ds.arbitrary_grid(left_edge, right_edge, dims=[xlim, ylim, zlim])
+    
+    
+    
 
     timestamp_energy = {'kinetic_energy': 0, 'thermal_energy': 0, 'total_energy': 0}
 
@@ -57,6 +60,12 @@ def calc_energy(hdf5_filename, root_dir, timestamp, xlim, ylim, zlim, output_dir
     k = yt.physical_constants.kb
 
     center_z = 409
+
+
+    img = np.log10(obj["flash", "dens"][:,:,center_z])       # .T[::-1]
+    normalizedImg = ((img - np.min(img)) / (np.max(img) - np.min(img)) ) * 255 
+    cv.imwrite(os.path.join(output_dir, 'dens.png'), normalizedImg)
+
     rho = obj["flash", "dens"][:,:,center_z]
     v_sq = obj["flash", "velx"][:,:,center_z]**2 + obj["flash", "vely"][:,:,center_z]**2 + obj["flash", "velz"][:,:,center_z]**2
     kinetic_map[:, :, 0] = ((1/2) * rho * v_sq ).to(kinetic_map.units)

@@ -30,7 +30,7 @@ def process_timestamps(root_dir):
                     total_white_pixels += count_white_pixels(image_path)
 
             # Store the total volume of white pixels for the current timestamp, and convert to pc**3
-            volume_dic[timestamp] = total_white_pixels * (3.9 **3)
+            volume_dic[timestamp] = total_white_pixels
 
     return volume_dic
 
