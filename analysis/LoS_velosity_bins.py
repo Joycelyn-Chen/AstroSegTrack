@@ -23,8 +23,8 @@ def get_velx_dens(x, y, z):
     posy_pc = int(y*256/1000)
     posz_pc = int(z*256/1000)
 
-    velz = obj["flash", "velz"][posx_pc, posy_pc, -250:250].to('km/s').value
-    dens = obj["flash", "dens"][posx_pc, posy_pc, -250:250].value
+    velz = obj["flash", "velz"][posx_pc, posy_pc, -250:250].to('km/s').value        # -250:250
+    dens = obj["flash", "dens"][posx_pc, posy_pc, -250:250].value                   # -250:250
 
     dz = (3.9 * 3.1 * 10**18) / (1.7 * 10**-24)
     dens = dens * dz
@@ -49,11 +49,14 @@ sortidx = np.argsort(velz)
 # for v, d in zip(velz[sortidx], dens[sortidx]):
 #     print('{:.3f} km/s {:.3e}'.format(v, d))
 
+# the recorded velz
 velz = np.array(velz)
 dens = np.array(dens)
 
+# velz sorted, density sort with the same order
 velz = velz[sortidx]
 dens = dens[sortidx]
+
 
 bins = np.linspace(velz.min(), velz.max(), 100)  # 21 bins means 22 edges
 bin_centers = 0.5 * (bins[:-1] + bins[1:])  # Calculate bin centers for plotting
@@ -77,4 +80,9 @@ fig, ax = plt.subplots()
 ax.plot(velz)
 axr = ax.twinx()
 axr.plot(dens, 'k')
+ax.set_xlabel('# data points')
+ax.set_ylabel('Velocity (km/s)')
+axr.set_ylabel('Density (cm^-2)')
+ax.set_title('Line of Sight velosity')
+
 plt.savefig("LoS_dens.png")
