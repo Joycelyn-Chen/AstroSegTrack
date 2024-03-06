@@ -3,12 +3,6 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 
 import yt
 
-fns = [
-    "Enzo_64/DD0005/data0005",
-    "Enzo_64/DD0015/data0015",
-    "Enzo_64/DD0025/data0025",
-    "Enzo_64/DD0035/data0035",
-]
 
 fig = plt.figure()
 
