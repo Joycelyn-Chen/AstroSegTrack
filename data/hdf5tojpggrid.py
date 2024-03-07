@@ -33,6 +33,8 @@ for i, z_center in enumerate(z_centers):
     
     p = yt.SlicePlot(ds, "z", "dens", center = [0, 0, z_center] * yt.units.pc)
     p.set_unit(("flash", "dens"), "g/cm**3")
+    p.set_cmap(field=("flash", "dens"), cmap="viridis")
+    
 
     # Ensure the colorbar limits match for all plots
     # p.set_zlim("dens", 1e-29, 1e-24)
@@ -54,6 +56,7 @@ for i, z_center in enumerate(z_centers):
     p = yt.SlicePlot(ds, "z", "temp", center = [0, 0, z_center] * yt.units.pc)
 
     p.set_unit(("flash", "temp"), "K")
+    p.set_cmap(field=("flash", "temp"), cmap="viridis_r")
 
     # Ensure the colorbar limits match for all plots
     # p.set_zlim("temp", 1e4, 1e7)
@@ -72,14 +75,15 @@ for i, z_center in enumerate(z_centers):
 for i, z_center in enumerate(z_centers):
     # Load the data and create a single plot
     
-    p = yt.SlicePlot(ds, "z", "velx", center = [0, 0, z_center] * yt.units.pc)
-    p.set_unit(("flash", "velx"), "km/s")
+    p = yt.SlicePlot(ds, "z", "velz", center = [0, 0, z_center] * yt.units.pc)
+    p.set_unit(("flash", "velz"), "km/s")
+    p.set_cmap(field=("flash", "velz"), cmap="RdBu_r")
 
     # Ensure the colorbar limits match for all plots
     # p.set_zlim("velx", 1e-7, 1e-7)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-    plot = p.plots["velx"]
+    plot = p.plots["velz"]
     plot.figure = fig
     plot.axes = grid[i + 6].axes
     plot.cax = grid.cbar_axes[i+6]
