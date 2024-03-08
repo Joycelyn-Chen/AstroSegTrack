@@ -4,8 +4,8 @@ import yt
 import numpy as np
 import os 
 
-hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
-# hdf5_root = "/home/joy0921/Desktop/Dataset/hdf5_files"
+# hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
+hdf5_root = "/home/joy0921/Desktop/Dataset/hdf5_files"
 
 ds = yt.load(os.path.join(hdf5_root, 'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0206'))
 
