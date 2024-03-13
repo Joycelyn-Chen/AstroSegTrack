@@ -20,7 +20,9 @@ def velosity_density_plot(bin_densities, output_root, timestamp, label):
 # Initialize parameters
 
 # hdf5_root = "/home/joy0921/Desktop/Dataset/200_360/finer_time_200_360_original"
-hdf5_root = "/home/joy0921/Desktop/Dataset/hdf5_files"
+# hdf5_root = "/home/joy0921/Desktop/Dataset/hdf5_files"
+    
+hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
 timestamps = [i for i in range(207, 234)]
 posx_pc = -333
 posy_pc = -443
@@ -63,7 +65,7 @@ for timestamp in timestamps:
             data.append((velx, vely, velz, dens))
 
         # 3. Process data and plot
-        velocities = [np.sqrt(x[0]**2 + x[1]**2 + x[2]**2) for x in data]
+        velocities = [x[2] for x in data] #[np.sqrt(x[0]**2 + x[1]**2 + x[2]**2) for x in data]
         density = [x[3] for x in data]
 
         # Bin the data
