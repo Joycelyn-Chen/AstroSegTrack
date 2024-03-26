@@ -1,1 +1,9 @@
 pandas
+yt
+astropy
+opencv-python
+numpy
+PIL
+torch
+torchvision
+git+https://github.com/facebookresearch/segment-anything.git

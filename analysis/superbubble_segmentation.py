@@ -18,7 +18,7 @@ low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 50
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_TYPE = "vit_h"
-CHECKPOINT_PATH = '/home/joy0921/Desktop/segment-anything/checkpoints/sam_vit_h_4b8939.pth'
+CHECKPOINT_PATH = '../checkpoints/sam_vit_h_4b8939.pth'
 DEBUG = True
 
 # Initialize the model
