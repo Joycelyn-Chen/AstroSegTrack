@@ -90,6 +90,10 @@ def sam_and_save_mask(image_path, output_path, input_box, input_point):
         plt.savefig("tmp.png")
         plt.clf()
 
+    # TODO: gotta calculate the volume somewhere
+    volume = 0
+    return volume
+
 def plot_accumulated_volumes(accumulated_areas, output_root):
     times = list(accumulated_areas.keys())
     volumes = list(accumulated_areas.values())
@@ -159,6 +163,8 @@ def main(args):
             volume = sam_and_save_mask(img_path, mask_path, input_box = args.bbox, input_point = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000)])
 
         # volume, kin_energy, therm_energy = SAM_segmentation()
+        
+        # TODO: still need to document volume, energy and write them into csv file 
 
 
     
