@@ -176,3 +176,9 @@ cython_debug/
 */*/*.jpg
 */*/*.png
 
+# output.txt
+*.txt
+
+# checkpoint weights
+*.pth 
+*/*.pth 
