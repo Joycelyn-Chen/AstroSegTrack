@@ -18,7 +18,7 @@ low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 50
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_TYPE = "vit_h"
-CHECKPOINT_PATH = '../checkpoints/sam_vit_h_4b8939.pth'
+CHECKPOINT_PATH = './checkpoints/sam_vit_h_4b8939.pth'
 DEBUG = True
 
 # Initialize the model
@@ -90,9 +90,60 @@ def sam_and_save_mask(image_path, output_path, input_box, input_point):
         plt.savefig("tmp.png")
         plt.clf()
 
-    # TODO: gotta calculate the volume somewhere
-    volume = 0
-    return volume
+    area = np.sum(best_mask)
+    return area
+
+def otsu_and_save_mask(image_path, output_path, input_point):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    binary_mask = apply_otsus_thresholding(image)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+    
+    # Check each component's bounding box to find the target mask
+    for i in range(3, num_labels):  # Starting from 1 to ignore the background
+        x, y, w, h, area = stats[i]
+        
+        # Check if the center point is within the bounding box
+        if (x <= input_point[0] < x + w) and (y <= input_point[1] < y + h and area < 10 * 427):
+            # If yes, fill the target_mask with this component
+            binary_mask[labels == i] = 255
+            target_mask = np.where(labels == i, 255, 0).astype('uint8')
+
+            # Save the target mask
+            cv2.imwrite(output_path, target_mask)
+            
+            break 
+    if area is not None:
+        return area 
+    return 0
+    # area = np.sum(binary_mask) / 255
+    # return area
+
+
+
+def associate_slices_within_cube(obj, img_root, mask_root, z_scaled, disappear_thres, direction, points, half_radius = 25):     #directom: -1 up, -1 down
+    area = disappear_thres
+    incr = 0
+    half_volume = 0
+
+    while(area >= disappear_thres and incr <= half_radius):
+        incr += 1
+        z_scaled += direction * 1
+        img_path = os.path.join(img_root, f"{z_scaled}.jpg")
+        mask_path = os.path.join(mask_root, f"{z_scaled}.png")  
+        
+        # store next image
+        next_slice = np.log10(obj['flash', 'dens'][:, :, z_scaled].T[::])
+        next_slice_norm = ((next_slice - np.min(next_slice)) / (np.max(next_slice) - np.min(next_slice)) ) * 255 
+        cv2.imwrite(img_path, next_slice_norm) 
+        
+        area = otsu_and_save_mask(img_path, mask_path, input_point = points)
+        half_volume += area
+
+        if (DEBUG):
+            print("Z: {}\tArea: {}".format(z_scaled, area))
+    return half_volume
+
+
 
 def plot_accumulated_volumes(accumulated_areas, output_root):
     times = list(accumulated_areas.keys())
@@ -115,7 +166,10 @@ def main(args):
     start_timestamp = time_Myr2timestamp(args.start_time_Myr)
     end_timestamp = time_Myr2timestamp(args.end_time_Myr) + 1
 
-    for timestamp in (start_timestamp, end_timestamp. args.interval):
+    for timestamp in range(start_timestamp, end_timestamp, args.interval):
+        # initialization 
+        timestamp_volume = 0
+
         #obj = read_hdf5(args.hdf5_root, args.file_prefix, timestamp)
         ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(args.file_prefix, timestamp)))
 
@@ -131,36 +185,39 @@ def main(args):
 
         z_range_scaled = (0, 256)
         center_slice = np.log10(obj['flash', 'dens'][:, :, (int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000) - z_range_scaled[0])].T[::])
+        center_slice_norm = ((center_slice - np.min(center_slice)) / (np.max(center_slice) - np.min(center_slice)) ) * 255 
         # center_slice = np.array(center_slice)
         
-        img_root = ensure_dir(os.path.join(args.output_root, timestamp, "img"))
-        mask_root = ensure_dir(os.path.join(args.output_root, timestamp, "mask"))
+        img_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "img"))
+        mask_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "mask"))
 
         # processing center slice
-        img_path = os.path.join(img_root, f"{int(pc2pixel(args.center_z, x_y_z="z") * 256/1000)}.jpg")
-        mask_path = os.path.join(mask_root, f"{int(pc2pixel(args.center_z, x_y_z="z") * 256/1000)}.png")
-        cv2.imwrite(img_path, center_slice)
+        img_path = os.path.join(img_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.jpg")
+        mask_path = os.path.join(mask_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.png")
+        cv2.imwrite(img_path, center_slice_norm)
 
-        volume_center = sam_and_save_mask(img_path, mask_path, input_box = args.bbox, input_point = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000)])
+        if(DEBUG):
+            print("Processing image: {}".format(img_path))
+        
+        points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
 
+        area_center = otsu_and_save_mask(img_path, mask_path, input_point = points)
+        timestamp_volume += area_center
+
+        if(DEBUG):
+            print("Center area: {}".format(area_center))
+            print("Tracking up for timestamp {}".format(timestamp))
+        
         # track up
-        volume = volume_center
-        z_scaled = int(pc2pixel(args.center_z, x_y_z="z") * 256/1000)
-        while(volume > args.disappear_thres and z_scaled >= 0):
-            z_scaled -= 1
-            img_path = os.path.join(img_root, f"{z_scaled}.jpg")
-            mask_path = os.path.join(mask_root, f"{z_scaled}.png")  
-            volume = sam_and_save_mask(img_path, mask_path, input_box = args.bbox, input_point = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000)])
+        area = area_center
+        z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
+        
+        timestamp_volume += associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 25, points = points)
             
-
+        if(DEBUG):
+            print("Tracking down for timestamp {}".format(timestamp))
         # track down
-        volume = volume_center
-        z_scaled = int(pc2pixel(args.center_z, x_y_z="z") * 256/1000)
-        while(volume > args.disappear_thres and z_scaled < 256):
-            z_scaled += 1
-            img_path = os.path.join(img_root, f"{z_scaled}.jpg")
-            mask_path = os.path.join(mask_root, f"{z_scaled}.png")  
-            volume = sam_and_save_mask(img_path, mask_path, input_box = args.bbox, input_point = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000)])
+        timestamp_volume += associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 25, points = points)
 
         # volume, kin_energy, therm_energy = SAM_segmentation()
         
@@ -181,14 +238,13 @@ if __name__ == "__main__":
     parser.add_argument("--center_x_pc", help="Specify the center position of SN in pc", type = int)            # 
     parser.add_argument("--center_y_pc", help="Specify the center position of SN in pc", type = int)            # 
     parser.add_argument("--center_z_pc", help="Specify the center position of SN in pc", type = int)            # 
-    parser.add_argument("--bbox", help="Specify the center bbox of SB", type = list)            # [100, 128, 200, 228]
-    parser.add_argument("--disappear_thres", help="Specify disappear iou threshold", default = 10, type = float) 
+    parser.add_argument("--bbox", help="Specify the center bbox of SB", type = list, default = [120, 148, 180, 208])            # [100, 128, 200, 228]
+    parser.add_argument("--disappear_thres", help="Specify disappear area threshold (pixel)", default = 10, type = float) 
     parser.add_argument("--output_root", help="Path to output root", default = "../../Dataset/")    
     
     
 
   
-    # python analysis/track_volume.py 
-    
+    # python analysis/superbubble_segmentation.py --hdf5_root /home/joy0921/Desktop/Dataset/SB230/HDF5 --start_time_Myr 209 --end_time_Myr 209 --center_x_pc 85 --center_y_pc 196 --center_z_pc 53 --output_root ../Dataset/SB230    
     args = parser.parse_args()
     main(args)
