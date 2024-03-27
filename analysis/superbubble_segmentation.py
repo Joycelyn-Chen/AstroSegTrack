@@ -14,6 +14,9 @@ from segment_anything import sam_model_registry, SamPredictor
 
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
+k = yt.physical_constants.kb
+mu = 1.4
+m_H = yt.physical_constants.mass_hydrogen
 
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -137,12 +140,43 @@ def associate_slices_within_cube(obj, img_root, mask_root, z_scaled, disappear_t
         cv2.imwrite(img_path, next_slice_norm) 
         
         area = otsu_and_save_mask(img_path, mask_path, input_point = points)
+        kinetic_energy, thermal_energy, total_energy = calc_energy(obj, mask_path)
+
+        half_kinetic += kinetic_energy
+        half_thermal += thermal_energy
+        half_total += total_energy
         half_volume += area
 
         if (DEBUG):
             print("Z: {}\tArea: {}".format(z_scaled, area))
-    return half_volume
+    return half_volume, half_kinetic, half_thermal, half_total
 
+def calc_energy(obj, mask_path):
+    if(DEBUG):
+        print("Calculating 3 energies...\n")
+
+    mask_img = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)
+    # coordinates = np.argwhere(mask_img == 255)
+    mask_boolean = mask_img == 255
+
+    z = int(mask_path.split(".")[-2])
+
+    temp = obj["flash", "temp"][:, :, z]
+    n = obj["flash", "dens"][:, :, z] / (mu * m_H)
+
+    rho = obj["flash", "dens"][:, :, z]
+    v_sq = obj["flash", "velx"][:, :, z]**2 + obj["flash", "vely"][:, :, z]**2 + obj["flash", "velz"][:, :, z]**2
+
+    cell_volume = obj["flash", "cell_volume"][:, :, z]
+
+    kinetic_energy = (0.5 * rho * v_sq * cell_volume).to('erg')
+    thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg')
+    total_energy = (kinetic_energy + thermal_energy).to('erg/cm**3')
+
+    kinetic_energy_sum = np.sum(kinetic_energy[mask_boolean])
+    thermal_energy_sum = np.sum(thermal_energy[mask_boolean])
+    total_energy = kinetic_energy_sum + thermal_energy_sum
+    return kinetic_energy_sum, thermal_energy_sum, total_energy
 
 
 def plot_accumulated_volumes(accumulated_areas, output_root):
@@ -165,6 +199,7 @@ def main(args):
     
     start_timestamp = time_Myr2timestamp(args.start_time_Myr)
     end_timestamp = time_Myr2timestamp(args.end_time_Myr) + 1
+    timestamp_info = {}
 
     for timestamp in range(start_timestamp, end_timestamp, args.interval):
         # initialization 
@@ -202,7 +237,10 @@ def main(args):
         points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
 
         area_center = otsu_and_save_mask(img_path, mask_path, input_point = points)
-        timestamp_volume += area_center
+        timestamp_info[timestamp]['volume'] = area_center
+        timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
+        timestamp_info[timestamp]['thermal'] = 0
+        timestamp_info[timestamp]['total'] = 0
 
         if(DEBUG):
             print("Center area: {}".format(area_center))
@@ -212,14 +250,26 @@ def main(args):
         area = area_center
         z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
         
-        timestamp_volume += associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 25, points = points)
-            
+        half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 25, points = points)
+        timestamp_info[timestamp]['volume'] += half_volume
+        timestamp_info[timestamp]['kinetic'] += half_kinetic        
+        timestamp_info[timestamp]['thermal'] += half_thermal
+        timestamp_info[timestamp]['total'] += half_total
+
         if(DEBUG):
             print("Tracking down for timestamp {}".format(timestamp))
         # track down
-        timestamp_volume += associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 25, points = points)
+        half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 25, points = points)
+        timestamp_info[timestamp]['volume'] += half_volume
+        timestamp_info[timestamp]['kinetic'] += half_kinetic        
+        timestamp_info[timestamp]['thermal'] += half_thermal
+        timestamp_info[timestamp]['total'] += half_total
 
+        print(timestamp_info)
+        
         # volume, kin_energy, therm_energy = SAM_segmentation()
+
+        
         
         # TODO: still need to document volume, energy and write them into csv file 
 
