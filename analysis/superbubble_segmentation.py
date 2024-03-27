@@ -155,7 +155,7 @@ def calc_energy(obj, mask_path):
     if(DEBUG):
         print("Calculating 3 energies...\n")
 
-    mask_img = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)
+    mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     # coordinates = np.argwhere(mask_img == 255)
     mask_boolean = mask_img == 255
 
