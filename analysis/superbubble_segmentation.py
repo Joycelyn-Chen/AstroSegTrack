@@ -155,7 +155,7 @@ def calc_energy(obj, mask_path):
     if(DEBUG):
         print("Calculating 3 energies...\n")
 
-    mask_img = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)
+    mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     # coordinates = np.argwhere(mask_img == 255)
     mask_boolean = mask_img == 255
 
@@ -199,7 +199,7 @@ def main(args):
     
     start_timestamp = time_Myr2timestamp(args.start_time_Myr)
     end_timestamp = time_Myr2timestamp(args.end_time_Myr) + 1
-    timestamp_info = {}
+    timestamp_info = {380:{}}
 
     for timestamp in range(start_timestamp, end_timestamp, args.interval):
         # initialization 
