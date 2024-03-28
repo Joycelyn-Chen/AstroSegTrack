@@ -196,47 +196,12 @@ def plot_accumulated_volumes(accumulated_areas, output_root):
     #DEBUG
     print(f"Volume chart saved at: {os.path.join(output_root, 'volume.png')}")
 
-def segment_and_accumulate_areas(start_timestamp, end_timestamp, dataset_root, output_root, disappear_thres):
-    timestamp_info = {}
-    timestamps = range(start_timestamp + 1, end_timestamp + 1)  # Adjust end_timestamp as needed
-    blob_disappeared = False
-
-    # trace the first center timestamp
-    # retrieve mask, volume, energy
-    volume, center_mask, bbox, mask_dir_root = trace_first_timestamp(start_timestamp, image_paths, filtered_df, output_root)
-    previous_mask = center_mask
-
-    #DEBUG
-    if (DEBUG):
-        print(f"Done tracing first timestamp {start_timestamp}...")
-
-    for timestamp in timestamps:
-        if blob_disappeared:
-            break
-        
-        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root, output_root, previous_mask)
-        if center_mask is None or compute_iou(previous_mask, center_mask) < disappear_thres:
-            blob_disappeared = True
-            continue
-        previous_mask = center_mask
-
-        accumulated_areas[timestamp] = accumulated_areas.get(timestamp, 0) + volume         #TODO: might need to change this
-
-        #DEBUG
-        print(f"Done tracing {timestamp}... volume = {volume}")
 
 
 def main(args):
     start_timestamp = time_Myr2timestamp(args.start_time_Myr)
     end_timestamp = time_Myr2timestamp(args.end_time_Myr) + 1
-    
-
-    accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
-    plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
-    
-    accumulated_volumes_int = {k: int(v) for k, v in accumulated_volumes.items()}
-    with open(os.path.join(mask_dir_root, "volume.json"), "w") as f:
-        json.dump(accumulated_volumes_int, f)
+    timestamp_info = {}
 
     for timestamp in range(start_timestamp, end_timestamp, args.interval):
         # initialization 
