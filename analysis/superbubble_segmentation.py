@@ -210,6 +210,7 @@ def segment_and_accumulate_areas(start_timestamp, end_timestamp, dataset_root, o
     if (DEBUG):
         print(f"Done tracing first timestamp {start_timestamp}...")
 
+    # TODO: change the implementation
     for timestamp in timestamps:
         if blob_disappeared:
             break
@@ -238,6 +239,7 @@ def main(args):
     with open(os.path.join(mask_dir_root, "volume.json"), "w") as f:
         json.dump(accumulated_volumes_int, f)
 
+    # TODO: move everything here to segment_and_accumulate
     for timestamp in range(start_timestamp, end_timestamp, args.interval):
         # initialization 
         timestamp_info[timestamp] = {}
@@ -303,7 +305,8 @@ def main(args):
 
         print(timestamp_info)
         
-        
+        # TODO: end move
+
         with open(os.path.join(args.output_root, 'timestamp_info.json'), f'{args.info_mode}') as convert_file: 
             convert_file.write(str(timestamp_info))
 
