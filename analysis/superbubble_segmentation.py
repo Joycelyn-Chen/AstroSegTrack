@@ -17,6 +17,9 @@ low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 50
 k = yt.physical_constants.kb
 mu = 1.4
 m_H = yt.physical_constants.mass_hydrogen
+xlim = 256
+ylim = 256
+zlim= 256
 
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -99,16 +102,16 @@ def sam_and_save_mask(image_path, output_path, input_box, input_point):
 def otsu_and_save_mask(image_path, output_path, input_point):
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     binary_mask = apply_otsus_thresholding(image)
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
     
     # Check each component's bounding box to find the target mask
     for i in range(3, num_labels):  # Starting from 1 to ignore the background
         x, y, w, h, area = stats[i]
         
         # Check if the center point is within the bounding box
-        if (x <= input_point[0] < x + w) and (y <= input_point[1] < y + h):     # and area < 10 * 427
+        if SN_center_in_bubble(input_point[0], input_point[1], x, y, w, h):     # and area < 10 * 427
             # If yes, fill the target_mask with this component
-            binary_mask[labels == i] = 255
+            binary_mask = labels == i
             target_mask = np.where(labels == i, 255, 0).astype('uint8')
 
             # Save the target mask
@@ -116,8 +119,8 @@ def otsu_and_save_mask(image_path, output_path, input_point):
             
             break 
     if area is not None:
-        return area 
-    return 0
+        return area, binary_mask
+    return 0, None
     # area = np.sum(binary_mask) / 255
     # return area
 
@@ -130,7 +133,7 @@ def associate_slices_within_cube(obj, img_root, mask_root, z_scaled, disappear_t
     half_kinetic = 0
     half_thermal = 0
     half_total = 0
-
+    
     while(area >= disappear_thres and incr <= half_radius):
         incr += 1
         z_scaled += direction * 1
@@ -142,16 +145,37 @@ def associate_slices_within_cube(obj, img_root, mask_root, z_scaled, disappear_t
         next_slice_norm = ((next_slice - np.min(next_slice)) / (np.max(next_slice) - np.min(next_slice)) ) * 255 
         cv2.imwrite(img_path, next_slice_norm) 
         
-        area = otsu_and_save_mask(img_path, mask_path, input_point = points)
-        kinetic_energy, thermal_energy, total_energy = calc_energy(obj, mask_path)
+        image = read_image_grayscale(img_path)
+        binary_image = apply_otsus_thresholding(image)
+        num_labels, labels, stats, _ = find_connected_components(binary_image)
 
-        half_kinetic += kinetic_energy
-        half_thermal += thermal_energy
-        half_total += total_energy
-        half_volume += area
+        no_match = True
+        for label in range(2, num_labels):
+            current_mask = labels == label
 
-        if (DEBUG):
-            print("Z: {}\tArea: {}".format(z_scaled, area))
+            if compute_iou(current_mask, tmp_mask) >= 0.5:      # if found a match in this slice
+                tmp_mask = current_mask 
+                cv2.imwrite(mask_path, current_mask * 255)
+
+                # log volume for each slice
+                area = stats[label, cv2.CC_STAT_AREA]
+                half_volume += area
+                no_match = False
+                kinetic_energy, thermal_energy, total_energy = calc_energy(obj, mask_path)
+
+                half_kinetic += kinetic_energy
+                half_thermal += thermal_energy
+                half_total += total_energy
+                half_volume += area
+
+                if (DEBUG):
+                    print("Z: {}\tArea: {}".format(z_scaled, area))
+                break       # Moving to the next slice
+        
+        # If can't find any match in this slice, then move on to the next phase
+        if no_match:
+            break
+
     return half_volume, half_kinetic, half_thermal, half_total
 
 def calc_energy(obj, mask_path):
@@ -196,119 +220,184 @@ def plot_accumulated_volumes(accumulated_areas, output_root):
     #DEBUG
     print(f"Volume chart saved at: {os.path.join(output_root, 'volume.png')}")
 
-def segment_and_accumulate_areas(start_timestamp, end_timestamp, dataset_root, output_root, disappear_thres):
-    timestamp_info = {}
-    timestamps = range(start_timestamp + 1, end_timestamp + 1)  # Adjust end_timestamp as needed
+def trace_first_timestamp(args, timestamp, timestamp_info):
+    ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(args.file_prefix, timestamp)))
+
+    center = [0, 0, 0] * yt.units.pc
+    arb_center = ds.arr(center, 'code_length')
+    left_edge = arb_center + ds.quan(-500, 'pc')
+    right_edge = arb_center + ds.quan(500, 'pc')
+    obj = ds.arbitrary_grid(left_edge, right_edge, dims=(xlim,ylim,zlim))
+    
+
+    z_range_scaled = (0, 256)
+    center_slice = np.log10(obj['flash', 'dens'][:, :, (int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000) - z_range_scaled[0])].T[::])
+    center_slice_norm = ((center_slice - np.min(center_slice)) / (np.max(center_slice) - np.min(center_slice)) ) * 255 
+    # center_slice = np.array(center_slice)
+    
+    img_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "img"))
+    mask_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "mask"))
+
+    # processing center slice
+    img_path = os.path.join(img_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.jpg")
+    mask_path = os.path.join(mask_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.png")
+    cv2.imwrite(img_path, center_slice_norm)
+
+    if(DEBUG):
+        print("Processing image: {}".format(img_path))
+    
+    points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
+
+    area_center, center_mask = otsu_and_save_mask(img_path, mask_path, input_point = points)
+    timestamp_info[timestamp]['volume'] = area_center
+    timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
+    timestamp_info[timestamp]['thermal'] = 0
+    timestamp_info[timestamp]['total'] = 0
+
+    if(DEBUG):
+        print("Center area: {}".format(area_center))
+        print("Tracking up for timestamp {}".format(timestamp))
+    
+    # track up
+    z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
+    
+    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 50, points = points)
+    timestamp_info[timestamp]['volume'] += half_volume
+    timestamp_info[timestamp]['kinetic'] += half_kinetic        
+    timestamp_info[timestamp]['thermal'] += half_thermal
+    timestamp_info[timestamp]['total'] += half_total
+
+    if(DEBUG):
+        print("Tracking down for timestamp {}".format(timestamp))
+    # track down
+    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 50, points = points)
+    timestamp_info[timestamp]['volume'] += half_volume
+    timestamp_info[timestamp]['kinetic'] += half_kinetic        
+    timestamp_info[timestamp]['thermal'] += half_thermal
+    timestamp_info[timestamp]['total'] += half_total
+
+    print(timestamp_info)
+
+def associate_next_timestamp(args, timestamp, timestamp_info):
+    ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(args.file_prefix, timestamp)))
+
+    center = [0, 0, 0] * yt.units.pc
+    arb_center = ds.arr(center, 'code_length')
+    xlim = 256
+    ylim = 256
+    zlim= 256
+    left_edge = arb_center + ds.quan(-500, 'pc')
+    right_edge = arb_center + ds.quan(500, 'pc')
+    obj = ds.arbitrary_grid(left_edge, right_edge, dims=(xlim,ylim,zlim))
+    
+
+    z_range_scaled = (0, 256)
+    center_slice = np.log10(obj['flash', 'dens'][:, :, (int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000) - z_range_scaled[0])].T[::])
+    center_slice_norm = ((center_slice - np.min(center_slice)) / (np.max(center_slice) - np.min(center_slice)) ) * 255 
+    # center_slice = np.array(center_slice)
+    
+    img_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "img"))
+    mask_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "mask"))
+
+    # processing center slice
+    img_path = os.path.join(img_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.jpg")
+    mask_path = os.path.join(mask_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.png")
+    cv2.imwrite(img_path, center_slice_norm)
+
+    if(DEBUG):
+        print("Processing image: {}".format(img_path))
+    
+    points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
+
+    area_center = otsu_and_save_mask(img_path, mask_path, input_point = points)
+    timestamp_info[timestamp]['volume'] = area_center
+    timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
+    timestamp_info[timestamp]['thermal'] = 0
+    timestamp_info[timestamp]['total'] = 0
+
+    if(DEBUG):
+        print("Center area: {}".format(area_center))
+        print("Tracking up for timestamp {}".format(timestamp))
+    
+    # track up
+    z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
+    
+    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 50, points = points)
+    timestamp_info[timestamp]['volume'] += half_volume
+    timestamp_info[timestamp]['kinetic'] += half_kinetic        
+    timestamp_info[timestamp]['thermal'] += half_thermal
+    timestamp_info[timestamp]['total'] += half_total
+
+    if(DEBUG):
+        print("Tracking down for timestamp {}".format(timestamp))
+    # track down
+    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 50, points = points)
+    timestamp_info[timestamp]['volume'] += half_volume
+    timestamp_info[timestamp]['kinetic'] += half_kinetic        
+    timestamp_info[timestamp]['thermal'] += half_thermal
+    timestamp_info[timestamp]['total'] += half_total
+
+
+def segment_and_accumulate_areas(args, start_timestamp, end_timestamp, dataset_root, output_root, timestamp_info, disappear_thres):
+    timestamps = range(start_timestamp + 1, end_timestamp, args.interval)  
     blob_disappeared = False
 
     # trace the first center timestamp
     # retrieve mask, volume, energy
-    volume, center_mask, bbox, mask_dir_root = trace_first_timestamp(start_timestamp, image_paths, filtered_df, output_root)
+    # TODO: modify trace_first_timestamp
+    volume, center_mask, bbox, mask_dir_root = trace_first_timestamp(args, start_timestamp, timestamp_info)
     previous_mask = center_mask
 
     #DEBUG
     if (DEBUG):
         print(f"Done tracing first timestamp {start_timestamp}...")
 
-    # TODO: change the implementation
+
     for timestamp in timestamps:
         if blob_disappeared:
             break
         
+        # initialization 
+        timestamp_info[timestamp] = {}
+
         volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root, output_root, previous_mask)
         if center_mask is None or compute_iou(previous_mask, center_mask) < disappear_thres:
             blob_disappeared = True
             continue
         previous_mask = center_mask
 
-        accumulated_areas[timestamp] = accumulated_areas.get(timestamp, 0) + volume         #TODO: might need to change this
-
+        
         #DEBUG
         print(f"Done tracing {timestamp}... volume = {volume}")
+        
+
+
+        print(timestamp_info)
+
+
+
 
 
 def main(args):
     start_timestamp = time_Myr2timestamp(args.start_time_Myr)
     end_timestamp = time_Myr2timestamp(args.end_time_Myr) + 1
+    timestamp_info = {}
     
 
-    accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args.start_timestamp, filtered_df, args.dataset_root, args.timestamp_bound, args.output_root, args.disappear_thres)
-    plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
+    accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args, start_timestamp, end_timestamp, args.dataset_root, args.output_root, timestamp_info, args.disappear_thres)
     
-    accumulated_volumes_int = {k: int(v) for k, v in accumulated_volumes.items()}
-    with open(os.path.join(mask_dir_root, "volume.json"), "w") as f:
-        json.dump(accumulated_volumes_int, f)
+    # TODO: plot the energy and volume chart
+    # plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
+    
+    
+    # with open(os.path.join(mask_dir_root, "volume.json"), "w") as f:
+    #     json.dump(accumulated_volumes_int, f)
 
-    # TODO: move everything here to segment_and_accumulate
-    for timestamp in range(start_timestamp, end_timestamp, args.interval):
-        # initialization 
-        timestamp_info[timestamp] = {}
+    
+  
 
-        #obj = read_hdf5(args.hdf5_root, args.file_prefix, timestamp)
-        ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(args.file_prefix, timestamp)))
-
-        center = [0, 0, 0] * yt.units.pc
-        arb_center = ds.arr(center, 'code_length')
-        xlim = 256
-        ylim = 256
-        zlim= 256
-        left_edge = arb_center + ds.quan(-500, 'pc')
-        right_edge = arb_center + ds.quan(500, 'pc')
-        obj = ds.arbitrary_grid(left_edge, right_edge, dims=(xlim,ylim,zlim))
-        
-
-        z_range_scaled = (0, 256)
-        center_slice = np.log10(obj['flash', 'dens'][:, :, (int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000) - z_range_scaled[0])].T[::])
-        center_slice_norm = ((center_slice - np.min(center_slice)) / (np.max(center_slice) - np.min(center_slice)) ) * 255 
-        # center_slice = np.array(center_slice)
-        
-        img_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "img"))
-        mask_root = ensure_dir(os.path.join(args.output_root, str(timestamp), "mask"))
-
-        # processing center slice
-        img_path = os.path.join(img_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.jpg")
-        mask_path = os.path.join(mask_root, f"{int(pc2pixel(args.center_z_pc, x_y_z='z') * 256/1000)}.png")
-        cv2.imwrite(img_path, center_slice_norm)
-
-        if(DEBUG):
-            print("Processing image: {}".format(img_path))
-        
-        points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
-
-        area_center = otsu_and_save_mask(img_path, mask_path, input_point = points)
-        timestamp_info[timestamp]['volume'] = area_center
-        timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
-        timestamp_info[timestamp]['thermal'] = 0
-        timestamp_info[timestamp]['total'] = 0
-
-        if(DEBUG):
-            print("Center area: {}".format(area_center))
-            print("Tracking up for timestamp {}".format(timestamp))
-        
-        # track up
-        z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
-        
-        half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 50, points = points)
-        timestamp_info[timestamp]['volume'] += half_volume
-        timestamp_info[timestamp]['kinetic'] += half_kinetic        
-        timestamp_info[timestamp]['thermal'] += half_thermal
-        timestamp_info[timestamp]['total'] += half_total
-
-        if(DEBUG):
-            print("Tracking down for timestamp {}".format(timestamp))
-        # track down
-        half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 50, points = points)
-        timestamp_info[timestamp]['volume'] += half_volume
-        timestamp_info[timestamp]['kinetic'] += half_kinetic        
-        timestamp_info[timestamp]['thermal'] += half_thermal
-        timestamp_info[timestamp]['total'] += half_total
-
-        print(timestamp_info)
-        
-        # TODO: end move
-
-        with open(os.path.join(args.output_root, 'timestamp_info.json'), f'{args.info_mode}') as convert_file: 
-            convert_file.write(str(timestamp_info))
+    with open(os.path.join(args.output_root, 'timestamp_info.json'), f'{args.info_mode}') as convert_file: 
+        convert_file.write(str(timestamp_info))
 
 
 if __name__ == "__main__":
