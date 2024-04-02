@@ -20,6 +20,8 @@ m_H = yt.physical_constants.mass_hydrogen
 xlim = 256
 ylim = 256
 zlim= 256
+center = [0, 0, 0] * yt.units.pc
+z_range_scaled = (0, 256)
 
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -126,13 +128,14 @@ def otsu_and_save_mask(image_path, output_path, input_point):
 
 
 
-def associate_slices_within_cube(obj, img_root, mask_root, z_scaled, disappear_thres, direction, points, half_radius = 50):     #directom: -1 up, -1 down
+def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled, disappear_thres, direction, points, half_radius = 50):     #directom: -1 up, -1 down
     area = disappear_thres
     incr = 0
     half_volume = 0
     half_kinetic = 0
     half_thermal = 0
     half_total = 0
+    tmp_mask = center_mask
     
     while(area >= disappear_thres and incr <= half_radius):
         incr += 1
@@ -223,14 +226,12 @@ def plot_accumulated_volumes(accumulated_areas, output_root):
 def trace_first_timestamp(args, timestamp, timestamp_info):
     ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(args.file_prefix, timestamp)))
 
-    center = [0, 0, 0] * yt.units.pc
     arb_center = ds.arr(center, 'code_length')
     left_edge = arb_center + ds.quan(-500, 'pc')
     right_edge = arb_center + ds.quan(500, 'pc')
     obj = ds.arbitrary_grid(left_edge, right_edge, dims=(xlim,ylim,zlim))
     
 
-    z_range_scaled = (0, 256)
     center_slice = np.log10(obj['flash', 'dens'][:, :, (int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000) - z_range_scaled[0])].T[::])
     center_slice_norm = ((center_slice - np.min(center_slice)) / (np.max(center_slice) - np.min(center_slice)) ) * 255 
     # center_slice = np.array(center_slice)
@@ -249,6 +250,7 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
 
     area_center, center_mask = otsu_and_save_mask(img_path, mask_path, input_point = points)
+    timestamp_info[timestamp] = {}
     timestamp_info[timestamp]['volume'] = area_center
     timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
     timestamp_info[timestamp]['thermal'] = 0
@@ -260,8 +262,8 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     
     # track up
     z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
-    
-    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 50, points = points)
+
+    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
@@ -270,28 +272,25 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     if(DEBUG):
         print("Tracking down for timestamp {}".format(timestamp))
     # track down
-    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 50, points = points)
+    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
 
-    print(timestamp_info)
+    if(DEBUG):
+        print(timestamp_info)
+    
+    return center_mask, timestamp_info 
 
 def associate_next_timestamp(args, timestamp, timestamp_info):
     ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(args.file_prefix, timestamp)))
 
-    center = [0, 0, 0] * yt.units.pc
     arb_center = ds.arr(center, 'code_length')
-    xlim = 256
-    ylim = 256
-    zlim= 256
     left_edge = arb_center + ds.quan(-500, 'pc')
     right_edge = arb_center + ds.quan(500, 'pc')
     obj = ds.arbitrary_grid(left_edge, right_edge, dims=(xlim,ylim,zlim))
     
-
-    z_range_scaled = (0, 256)
     center_slice = np.log10(obj['flash', 'dens'][:, :, (int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000) - z_range_scaled[0])].T[::])
     center_slice_norm = ((center_slice - np.min(center_slice)) / (np.max(center_slice) - np.min(center_slice)) ) * 255 
     # center_slice = np.array(center_slice)
@@ -309,8 +308,8 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     
     points = [int(pc2pixel(args.center_x_pc, x_y_z="x") * 256/1000), int(pc2pixel(args.center_y_pc, x_y_z="y") * 256/1000) + 100]
 
-    area_center = otsu_and_save_mask(img_path, mask_path, input_point = points)
-    timestamp_info[timestamp]['volume'] = area_center
+    area_center, center_mask = otsu_and_save_mask(img_path, mask_path, input_point = points)
+    timestamp_info[timestamp]['volume'] = 0
     timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
     timestamp_info[timestamp]['thermal'] = 0
     timestamp_info[timestamp]['total'] = 0
@@ -322,7 +321,7 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     # track up
     z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
     
-    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 50, points = points)
+    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
@@ -331,21 +330,23 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     if(DEBUG):
         print("Tracking down for timestamp {}".format(timestamp))
     # track down
-    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 50, points = points)
+    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
 
+    return center_mask
 
-def segment_and_accumulate_areas(args, start_timestamp, end_timestamp, dataset_root, output_root, timestamp_info, disappear_thres):
-    timestamps = range(start_timestamp + 1, end_timestamp, args.interval)  
+
+def segment_and_accumulate_areas(args, start_timestamp, end_timestamp, timestamp_info):
+    timestamps = range(start_timestamp + args.interval, end_timestamp, args.interval)  
     blob_disappeared = False
 
     # trace the first center timestamp
     # retrieve mask, volume, energy
     # TODO: modify trace_first_timestamp
-    volume, center_mask, bbox, mask_dir_root = trace_first_timestamp(args, start_timestamp, timestamp_info)
+    center_mask, timestamp_info = trace_first_timestamp(args, start_timestamp, timestamp_info)
     previous_mask = center_mask
 
     #DEBUG
@@ -360,19 +361,19 @@ def segment_and_accumulate_areas(args, start_timestamp, end_timestamp, dataset_r
         # initialization 
         timestamp_info[timestamp] = {}
 
-        volume, center_mask = associate_next_timestamp(start_timestamp, timestamp, dataset_root, output_root, previous_mask)
-        if center_mask is None or compute_iou(previous_mask, center_mask) < disappear_thres:
+        center_mask = associate_next_timestamp(args, timestamp, timestamp_info)
+        if center_mask is None or compute_iou(previous_mask, center_mask) < 0.3: #disappear_thres:
             blob_disappeared = True
             continue
         previous_mask = center_mask
 
         
         #DEBUG
-        print(f"Done tracing {timestamp}... volume = {volume}")
-        
-
-
-        print(timestamp_info)
+        if(DEBUG):
+            print(f"Done tracing {timestamp}... volume = {timestamp_info[timestamp]['volume']}")
+            print(timestamp_info)
+    
+    return timestamp_info
 
 
 
@@ -384,7 +385,7 @@ def main(args):
     timestamp_info = {}
     
 
-    accumulated_volumes, start_ts, end_ts, bbox, mask_dir_root = segment_and_accumulate_areas(args, start_timestamp, end_timestamp, args.dataset_root, args.output_root, timestamp_info, args.disappear_thres)
+    timestamp_info = segment_and_accumulate_areas(args, start_timestamp, end_timestamp, timestamp_info)
     
     # TODO: plot the energy and volume chart
     # plot_accumulated_volumes(accumulated_volumes, mask_dir_root)
@@ -418,6 +419,6 @@ if __name__ == "__main__":
     
 
   
-    # python analysis/superbubble_segmentation.py --hdf5_root /home/joy0921/Desktop/Dataset/SB230/HDF5 --start_time_Myr 209 --end_time_Myr 209 --center_x_pc 85 --center_y_pc 196 --center_z_pc 53 --output_root ../Dataset/SB230 --info_mode w   
+    # python analysis/superbubble_segmentation.py --hdf5_root /home/joy0921/Desktop/Dataset/SB230/HDF5 --start_time_Myr 209 --end_time_Myr 211 --center_x_pc 85 --center_y_pc 196 --center_z_pc 53 --output_root ../Dataset/SB230 --info_mode w   
     args = parser.parse_args()
     main(args)
