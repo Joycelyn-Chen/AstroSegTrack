@@ -15,11 +15,11 @@ limits = [0.0,      2.51e1,  3.98e1,  2.00e2,  1.0e3,   3.16e3,  6.31e3,  1.0e4,
 powers = [3.885,    1.50,    0.997,   0.431,   0.352,   0.152,   0.396,   13.8,    -0.216,   2.0,    0.01,    -2.0,    0.01,    -2.95,  -0.33,    0.50]
 coef =   [1.095e-32,2.39e-29,1.52e-28,3.06e-27,5.28e-27,2.64e-26,3.13e-27,7.63e-81,1.479e-21,1.0e-31,5.50e-22,3.98e-11,1.15e-22,3.89e-4,5.188e-21,3.090e-27]
 
-log_limits = np.log(limits)
-log_powers = np.log(powers)
-log_coef = np.log(coef)
+# log_limits = np.log(limits)
+# log_powers = np.log(powers)
+# log_coef = np.log(coef)
 
-piecewise_interp = interp1d(log_limits, log_coef + np.multiply(log_powers, log_limits[:-1]), kind='linear', fill_value="extrapolate")
+# piecewise_interp = interp1d(log_limits, log_coef + np.multiply(log_powers, log_limits[:-1]), kind='linear', fill_value="extrapolate")
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 k = yt.physical_constants.kb
