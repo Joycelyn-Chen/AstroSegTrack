@@ -8,10 +8,17 @@ import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 import json
+import math
 from utils import *
-import torch
-from segment_anything import sam_model_registry, SamPredictor
+from scipy.interpolate import interp1d
 
+limits = [0.0,      2.51e1,  3.98e1,  2.00e2,  1.0e3,   3.16e3,  6.31e3,  1.0e4,   1.70e4,   3.98e4, 7.94e4,  2.51e5,  5.62e5,  1.78e6, 2.75e6,   3.16e7, np.infty]
+powers = [3.885,    1.50,    0.997,   0.431,   0.352,   0.152,   0.396,   13.8,    -0.216,   2.0,    0.01,    -2.0,    0.01,    -2.95,  -0.33,    0.50]
+coef =   [1.095e-32,2.39e-29,1.52e-28,3.06e-27,5.28e-27,2.64e-26,3.13e-27,7.63e-81,1.479e-21,1.0e-31,5.50e-22,3.98e-11,1.15e-22,3.89e-4,5.188e-21,3.090e-27]
+
+log_limits = np.log(limits)
+log_powers = np.log(powers)
+log_coef = np.log(coef)
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 k = yt.physical_constants.kb
@@ -23,83 +30,14 @@ zlim= 256
 center = [0, 0, 0] * yt.units.pc
 z_range_scaled = (0, 256)
 
+epsilon = 0.05
+G_0 = 1.7
+h_pe = 300
 
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-MODEL_TYPE = "vit_h"
-CHECKPOINT_PATH = './checkpoints/sam_vit_h_4b8939.pth'
+
 DEBUG = True
 
-# Initialize the model
-sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH)
-sam.to(device=DEVICE)
-predictor = SamPredictor(sam)
 
-def show_mask(mask, ax, random_color=False):
-    if random_color:
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-    else:
-        color = np.array([30/255, 144/255, 255/255, 0.6])
-    h, w = mask.shape[-2:]
-    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-    ax.imshow(mask_image)
-    
-def show_points(coords, labels, ax, marker_size=375):
-    pos_points = coords[labels==1]
-    neg_points = coords[labels==0]
-    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
-    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)   
-    
-def show_box(box, ax):
-    x0, y0 = box[0], box[1]
-    w, h = box[2] - box[0], box[3] - box[1]
-    ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green', facecolor=(0,0,0,0), lw=2))   
-
-def sam_and_save_mask(image_path, output_path, input_box, input_point):
-    input_box = np.array(input_box)
-
-    # Read and preprocess the image
-    image_array = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-    predictor.set_image(image_array)
-
-    # Define the input point and label
-    input_point = np.array([input_point])
-    input_label = np.array([1])
-
-    # Point input
-    # Predict the mask
-    # masks, scores, logits = predictor.predict(
-    #     point_coords=input_point,
-    #     point_labels=input_label,
-    #     multimask_output=True,
-    # )
-
-    # bbox input
-    masks, _, _ = predictor.predict(
-        point_coords=input_point,
-        point_labels=input_label,
-        box=input_box,
-        multimask_output=False,
-    )
-
-    best_mask = masks[0]
-    best_mask = (best_mask * 255).astype(np.uint8)
-
-    # Save the mask as an image
-    cv2.imwrite(output_path, best_mask)
-
-    #DEBUG
-    if(DEBUG):
-        plt.figure(figsize=(10, 10))
-        plt.imshow(image_array)
-        show_mask(best_mask, plt.gca())
-        show_box(input_box, plt.gca())
-        show_points(input_point, input_label, plt.gca())
-        plt.axis('off')
-        plt.savefig("tmp.png")
-        plt.clf()
-
-    area = np.sum(best_mask)
-    return area
 
 def otsu_and_save_mask(image_path, output_path, input_point):
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -135,6 +73,7 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
     half_kinetic = 0
     half_thermal = 0
     half_total = 0
+    half_heating = 0
     tmp_mask = center_mask
     
     while(area >= disappear_thres and incr <= half_radius):
@@ -164,11 +103,12 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
                 area = stats[label, cv2.CC_STAT_AREA]
                 half_volume += area
                 no_match = False
-                kinetic_energy, thermal_energy, total_energy = calc_energy(obj, mask_path)
+                kinetic_energy, thermal_energy, total_energy, heating_rate = calc_energy(obj, mask_path)
 
                 half_kinetic += kinetic_energy
                 half_thermal += thermal_energy
                 half_total += total_energy
+                half_heating += heating_rate
                 half_volume += area
 
                 if (DEBUG):
@@ -179,7 +119,7 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
         if no_match:
             break
 
-    return half_volume, half_kinetic, half_thermal, half_total
+    return half_volume, half_kinetic, half_thermal, half_total, half_heating
 
 def calc_energy(obj, mask_path):
     if(DEBUG):
@@ -189,7 +129,7 @@ def calc_energy(obj, mask_path):
     # coordinates = np.argwhere(mask_img == 255)
     mask_boolean = mask_img == 255
 
-    z = int(mask_path.split("/")[-1].split(".")[-2])
+    z = int(mask_path.split("/")[-1].split(".")[-2])            # z in pc
 
     temp = obj["flash", "temp"][:, :, z]
     n = obj["flash", "dens"][:, :, z] / (mu * m_H)
@@ -199,6 +139,14 @@ def calc_energy(obj, mask_path):
 
     cell_volume = obj["flash", "cell_volume"][:, :, z]
 
+
+    # Heating Rate
+    temp_roi = np.where(mask_boolean, temp, np.nan)
+    heating_gamma = np.where(temp_roi > 20000, 0, epsilon * G_0 * np.exp(-np.abs(z) / h_pe) * 1e-24)        # Calculate heating_gamma based on temperature
+    heating_gamma_n = np.multiply(heating_gamma, n)                                                         # Multiply heating_gamma with n
+    heating_rate = np.sum(heating_gamma_n)
+    
+
     kinetic_energy = (0.5 * rho * v_sq * cell_volume).to('erg')
     thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg')
     total_energy = (kinetic_energy + thermal_energy).to('erg')
@@ -206,7 +154,7 @@ def calc_energy(obj, mask_path):
     kinetic_energy_sum = np.sum(kinetic_energy[mask_boolean])
     thermal_energy_sum = np.sum(thermal_energy[mask_boolean])
     total_energy = kinetic_energy_sum + thermal_energy_sum
-    return kinetic_energy_sum, thermal_energy_sum, total_energy
+    return kinetic_energy_sum, thermal_energy_sum, total_energy, heating_rate
 
 
 def plot_accumulated_volumes(accumulated_areas, output_root):
@@ -255,6 +203,7 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
     timestamp_info[timestamp]['thermal'] = 0
     timestamp_info[timestamp]['total'] = 0
+    timestamp_info[timestamp]['heating'] = 0
 
     if(DEBUG):
         print("Center area: {}".format(area_center))
@@ -263,20 +212,22 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     # track up
     z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
 
-    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
+    timestamp_info[timestamp]['heating'] += half_heating
 
     if(DEBUG):
         print("Tracking down for timestamp {}".format(timestamp))
     # track down
-    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
+    timestamp_info[timestamp]['heating'] += half_heating
 
     if(DEBUG):
         print(timestamp_info)
@@ -313,6 +264,7 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     timestamp_info[timestamp]['kinetic'] = 0        # TODO: calc energy for center slice
     timestamp_info[timestamp]['thermal'] = 0
     timestamp_info[timestamp]['total'] = 0
+    timestamp_info[timestamp]['heating'] = 0
 
     if(DEBUG):
         print("Center area: {}".format(area_center))
@@ -321,20 +273,23 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     # track up
     z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
     
-    half_volume, half_kinetic, half_thermal, half_total = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
+    timestamp_info[timestamp]['heating'] += half_heating
+
 
     if(DEBUG):
         print("Tracking down for timestamp {}".format(timestamp))
     # track down
-    half_volume, half_kinetic, half_thermal, half_total =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
+    timestamp_info[timestamp]['heating'] += half_heating
 
     return center_mask
 

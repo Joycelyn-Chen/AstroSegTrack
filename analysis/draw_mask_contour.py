@@ -1,5 +1,6 @@
 import yt
 import os 
+import cv2
 
 # Change the timestamp and the middle z (pixel), will create a clean graph and marks the contour on it (mask size (1000, 1000), img plot size (800, 800))
 
