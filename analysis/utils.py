@@ -258,3 +258,100 @@ def sam_and_save_mask(image_path, output_path, input_box, input_point):
 
     area = np.sum(best_mask)
     return area
+
+import numpy as np
+from scipy.interpolate import interp1d
+
+class PiecewisePowerlaw:
+    def __init__(self, limits, powers, coefficients=None, externalval=0.0, norm=True):
+        self.limits = np.atleast_1d(limits)
+        self.powers = np.atleast_1d(powers)
+
+        if len(self.limits) != len(self.powers) + 1:
+            raise ValueError("limits must be one longer than powers.")
+
+        if coefficients is None:
+            coefficients = np.ones(len(self.powers))
+
+            for n in range(1, len(self.powers)):
+                coefficients[n] = coefficients[n - 1] * self.limits[n] ** (self.powers[n - 1] - self.powers[n])
+        else:
+            coefficients = np.atleast_1d(coefficients)
+            if len(coefficients) != len(self.powers):
+                raise ValueError("coefficients and powers must be the same length.")
+
+        integrals = ((coefficients / (self.powers + 1.)) *
+                     (self.limits[1:] ** (self.powers + 1.) - self.limits[:-1] ** (self.powers + 1.)))
+        if norm:
+            integral_tot = np.sum(integrals)
+            coefficients /= integral_tot
+            integrals /= integral_tot
+
+        self.coefficients = coefficients
+        self.integrals = integrals
+        self.externalval = externalval
+
+    def __call__(self, x):
+        x = np.atleast_1d(x)
+        y = np.zeros_like(x)
+        for i in range(len(self.powers)):
+            mask = (x >= self.limits[i]) & (x < self.limits[i + 1])
+            y[mask] += self.coefficients[i] * x[mask] ** self.powers[i]
+        y[x < self.limits[0]] = self.externalval
+        y[x >= self.limits[-1]] = self.externalval
+        return y
+
+    def integrate(self, low, high, weight_power=None):
+        if weight_power is not None:
+            powers = self.powers + weight_power
+            integrals = ((self.coefficients / (powers + 1.)) *
+                         (self.limits[1:] ** (powers + 1.) - self.limits[:-1] ** (powers + 1.)))
+        else:
+            integrals = self.integrals
+
+        pairs = np.broadcast(low, high)
+        integral = np.zeros_like(pairs)
+        for i, (x0, x1) in enumerate(pairs):
+            x0, x1 = sorted([x0, x1])
+
+            mask = (x0 < self.limits[:-1]) & (x1 >= self.limits[1:])
+            indices = np.where(mask)[0]
+
+            if not np.any(mask):
+                integral.flat[i] = 0
+                if x0 > self.limits[-1] or x1 < self.limits[0]:
+                    continue
+
+                containedmask = (x0 >= self.limits[:-1]) & (x1 < self.limits[1:])
+                if np.any(containedmask):
+                    index = np.where(containedmask)[0][0]
+                    integral.flat[i] = (self.coefficients[index] / (self.powers[index] + 1.)) * \
+                                       (x1 ** (self.powers[index] + 1.) - x0 ** (self.powers[index] + 1.))
+                    continue
+                elif x1 >= self.limits[0] and x1 < self.limits[1]:
+                    highi = 0
+                    lowi = -1
+                elif x0 < self.limits[-1] and x0 >= self.limits[-2]:
+                    lowi = len(self.limits) - 2
+                    highi = len(self.limits)
+                else:
+                    lowi = np.max(np.where(x0 >= self.limits[:-1]))
+                    highi = np.min(np.where(x1 < self.limits[1:]))
+                insideintegral = 0
+            else:
+                insideintegral = np.sum(integrals[indices])
+                lowi = np.min(indices) - 1
+                highi = np.max(indices) + 1
+
+            if x0 < self.limits[0] or lowi < 0:
+                lowintegral = 0
+            else:
+                lowintegral = (self.coefficients[lowi] / (self.powers[lowi] + 1.)) * \
+                              (self.limits[lowi + 1] ** (self.powers[lowi] + 1.) - x0 ** (self.powers[lowi] + 1.))
+            if x1 > self.limits[-1] or highi > len(self.coefficients) - 1:
+                highintegral = 0
+            else:
+                highintegral = (self.coefficients[highi] / (self.powers[highi] + 1.)) * \
+                               (x1 ** (self.powers[highi] + 1.) - self.limits[highi] ** (self.powers[highi] + 1.))
+            integral.flat[i] = highintegral + insideintegral + lowintegral
+        return integral

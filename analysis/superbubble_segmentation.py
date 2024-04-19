@@ -10,9 +10,8 @@ import matplotlib.pyplot as plt
 import json
 import math
 from utils import *
-from scipy.interpolate import interp1d
 
-limits = [0.0,      2.51e1,  3.98e1,  2.00e2,  1.0e3,   3.16e3,  6.31e3,  1.0e4,   1.70e4,   3.98e4, 7.94e4,  2.51e5,  5.62e5,  1.78e6, 2.75e6,   3.16e7, np.infty]
+limits = [0.0,      2.51e1,  3.98e1,  2.00e2,  1.0e3,   3.16e3,  6.31e3,  1.0e4,   1.70e4,   3.98e4, 7.94e4,  2.51e5,  5.62e5,  1.78e6, 2.75e6,   3.16e7]
 powers = [3.885,    1.50,    0.997,   0.431,   0.352,   0.152,   0.396,   13.8,    -0.216,   2.0,    0.01,    -2.0,    0.01,    -2.95,  -0.33,    0.50]
 coef =   [1.095e-32,2.39e-29,1.52e-28,3.06e-27,5.28e-27,2.64e-26,3.13e-27,7.63e-81,1.479e-21,1.0e-31,5.50e-22,3.98e-11,1.15e-22,3.89e-4,5.188e-21,3.090e-27]
 
@@ -126,10 +125,7 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
     return half_volume, half_kinetic, half_thermal, half_total, half_heating, half_cooling
 
 
-def piecewise_powerlaw(T):
-    log_T = np.log(T)
-    log_result = piecewise_interp(log_T)
-    return np.exp(log_result)
+p = PiecewisePowerlaw(limits=limits, powers=powers, coefficients=coef, norm=False)
 
 def cooling(Tinp, dimensions=False):
     if dimensions:
@@ -138,8 +134,7 @@ def cooling(Tinp, dimensions=False):
     else:
         T = np.array(Tinp)
         unit = 1
-    return piecewise_powerlaw(T) * unit
-
+    return p(T) * unit
 
 def calc_energy(obj, mask_path):
     if(DEBUG):
