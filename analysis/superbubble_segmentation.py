@@ -20,6 +20,8 @@ log_limits = np.log(limits)
 log_powers = np.log(powers)
 log_coef = np.log(coef)
 
+piecewise_interp = interp1d(log_limits, log_coef + np.multiply(log_powers, log_limits[:-1]), kind='linear', fill_value="extrapolate")
+
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 k = yt.physical_constants.kb
 mu = 1.4
@@ -74,6 +76,7 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
     half_thermal = 0
     half_total = 0
     half_heating = 0
+    half_cooling = 0
     tmp_mask = center_mask
     
     while(area >= disappear_thres and incr <= half_radius):
@@ -103,12 +106,13 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
                 area = stats[label, cv2.CC_STAT_AREA]
                 half_volume += area
                 no_match = False
-                kinetic_energy, thermal_energy, total_energy, heating_rate = calc_energy(obj, mask_path)
+                kinetic_energy, thermal_energy, total_energy, heating_rate, cooling_rate = calc_energy(obj, mask_path)
 
                 half_kinetic += kinetic_energy
                 half_thermal += thermal_energy
                 half_total += total_energy
                 half_heating += heating_rate
+                half_cooling += cooling_rate
                 half_volume += area
 
                 if (DEBUG):
@@ -119,7 +123,23 @@ def associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled
         if no_match:
             break
 
-    return half_volume, half_kinetic, half_thermal, half_total, half_heating
+    return half_volume, half_kinetic, half_thermal, half_total, half_heating, half_cooling
+
+
+def piecewise_powerlaw(T):
+    log_T = np.log(T)
+    log_result = piecewise_interp(log_T)
+    return np.exp(log_result)
+
+def cooling(Tinp, dimensions=False):
+    if dimensions:
+        T = np.array(Tinp / yt.units.K)
+        unit = yt.units.erg * yt.units.cm**3.0 * yt.units.s**(-1.0)
+    else:
+        T = np.array(Tinp)
+        unit = 1
+    return piecewise_powerlaw(T) * unit
+
 
 def calc_energy(obj, mask_path):
     if(DEBUG):
@@ -142,10 +162,13 @@ def calc_energy(obj, mask_path):
 
     # Heating Rate
     temp_roi = np.where(mask_boolean, temp, np.nan)
-    heating_gamma = np.where(temp_roi > 20000, 0, epsilon * G_0 * np.exp(-np.abs(z) / h_pe) * 1e-24)        # Calculate heating_gamma based on temperature
+    z_pc = pixel2pc(z / 0.256)          # convert 256pixel-z to z in pc
+    heating_gamma = np.where(temp_roi > 20000, 0, epsilon * G_0 * np.exp(-np.abs(z_pc) / h_pe) * 1e-24)        # Calculate heating_gamma based on temperature
     heating_gamma_n = np.multiply(heating_gamma, n)                                                         # Multiply heating_gamma with n
     heating_rate = np.sum(heating_gamma_n)
-    
+
+    # Cooling Rate
+    cooling_rate = np.sum(np.multiply(cooling(temp_roi, dimensions=False), n ** 2)) 
 
     kinetic_energy = (0.5 * rho * v_sq * cell_volume).to('erg')
     thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg')
@@ -154,7 +177,7 @@ def calc_energy(obj, mask_path):
     kinetic_energy_sum = np.sum(kinetic_energy[mask_boolean])
     thermal_energy_sum = np.sum(thermal_energy[mask_boolean])
     total_energy = kinetic_energy_sum + thermal_energy_sum
-    return kinetic_energy_sum, thermal_energy_sum, total_energy, heating_rate
+    return kinetic_energy_sum, thermal_energy_sum, total_energy, heating_rate, cooling_rate
 
 
 def plot_accumulated_volumes(accumulated_areas, output_root):
@@ -204,6 +227,7 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     timestamp_info[timestamp]['thermal'] = 0
     timestamp_info[timestamp]['total'] = 0
     timestamp_info[timestamp]['heating'] = 0
+    timestamp_info[timestamp]['cooling'] = 0
 
     if(DEBUG):
         print("Center area: {}".format(area_center))
@@ -212,22 +236,24 @@ def trace_first_timestamp(args, timestamp, timestamp_info):
     # track up
     z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
 
-    half_volume, half_kinetic, half_thermal, half_total, half_heating = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating, half_cooling = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled - 1, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
     timestamp_info[timestamp]['heating'] += half_heating
+    timestamp_info[timestamp]['cooling'] += half_cooling
 
     if(DEBUG):
         print("Tracking down for timestamp {}".format(timestamp))
     # track down
-    half_volume, half_kinetic, half_thermal, half_total, half_heating =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating, half_cooling =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
     timestamp_info[timestamp]['heating'] += half_heating
+    timestamp_info[timestamp]['cooling'] += half_cooling
 
     if(DEBUG):
         print(timestamp_info)
@@ -265,6 +291,7 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     timestamp_info[timestamp]['thermal'] = 0
     timestamp_info[timestamp]['total'] = 0
     timestamp_info[timestamp]['heating'] = 0
+    timestamp_info[timestamp]['cooling'] = 0
 
     if(DEBUG):
         print("Center area: {}".format(area_center))
@@ -273,23 +300,25 @@ def associate_next_timestamp(args, timestamp, timestamp_info):
     # track up
     z_scaled = int(pc2pixel(args.center_z_pc, x_y_z="z") * 256/1000)
     
-    half_volume, half_kinetic, half_thermal, half_total, half_heating = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating, half_cooling = associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled, disappear_thres = args.disappear_thres, direction = -1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
     timestamp_info[timestamp]['heating'] += half_heating
+    timestamp_info[timestamp]['cooling'] += half_cooling
 
 
     if(DEBUG):
         print("Tracking down for timestamp {}".format(timestamp))
     # track down
-    half_volume, half_kinetic, half_thermal, half_total, half_heating =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
+    half_volume, half_kinetic, half_thermal, half_total, half_heating, half_cooling =  associate_slices_within_cube(obj, center_mask, img_root, mask_root, z_scaled + 1, disappear_thres = args.disappear_thres, direction = +1, half_radius = 100, points = points)
     timestamp_info[timestamp]['volume'] += half_volume
     timestamp_info[timestamp]['kinetic'] += half_kinetic        
     timestamp_info[timestamp]['thermal'] += half_thermal
     timestamp_info[timestamp]['total'] += half_total
     timestamp_info[timestamp]['heating'] += half_heating
+    timestamp_info[timestamp]['cooling'] += half_cooling
 
     return center_mask
 
