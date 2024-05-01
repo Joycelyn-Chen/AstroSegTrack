@@ -157,23 +157,24 @@ def calc_energy(obj, mask_path):
 
     # Heating Rate
     temp_roi = np.where(mask_boolean, temp, np.nan)
-    z_pc = pixel2pc(z, "z")  / 0.256          # convert 256pixel-z to z in pc
+    
+    z_pc = (z - 128) * 3.9
+    if(DEBUG):
+        print("z_pc: ", z_pc)
+    
+    # z_pc = pixel2pc(z, "z")  / 0.256          # convert 256pixel-z to z in pc
     heating_gamma = np.where(temp_roi > 20000, 0, epsilon * G_0 * np.exp(-np.abs(z_pc) / h_pe) * 1e-24)        # Calculate heating_gamma based on temperature
     
-    if(DEBUG):
-        print(heating_gamma.units)
 
     heating_gamma_n = np.multiply(heating_gamma, n)                                                         # Multiply heating_gamma with n
     
-    if(DEBUG):
-        print(heating_gamma_n.units)
     
     heating_rate = np.sum(heating_gamma_n)
 
 
 
     # Cooling Rate
-    cooling_rate = np.sum(np.multiply(cooling(temp_roi, dimensions=False), n ** 2)) 
+    cooling_rate = np.sum(np.multiply(cooling(temp_roi, dimensions=True), n ** 2)) 
 
     kinetic_energy = (0.5 * rho * v_sq * cell_volume).to('erg')
     thermal_energy = ((3/2) * k * temp * n * cell_volume).to('erg')
