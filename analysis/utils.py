@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
-from segment_anything import sam_model_registry, SamPredictor
+# from segment_anything import sam_model_registry, SamPredictor
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 DEBUG = True
@@ -182,82 +182,82 @@ def read_info(SN_info_file, info_col):
         return default_output
 
 
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-MODEL_TYPE = "vit_h"
-CHECKPOINT_PATH = './checkpoints/sam_vit_h_4b8939.pth'
+# DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+# MODEL_TYPE = "vit_h"
+# CHECKPOINT_PATH = './checkpoints/sam_vit_h_4b8939.pth'
 
 
-# Initialize the model
-sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH)
-sam.to(device=DEVICE)
-predictor = SamPredictor(sam)
+# # Initialize the model
+# sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH)
+# sam.to(device=DEVICE)
+# predictor = SamPredictor(sam)
 
-def show_mask(mask, ax, random_color=False):
-    if random_color:
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-    else:
-        color = np.array([30/255, 144/255, 255/255, 0.6])
-    h, w = mask.shape[-2:]
-    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-    ax.imshow(mask_image)
+# def show_mask(mask, ax, random_color=False):
+#     if random_color:
+#         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+#     else:
+#         color = np.array([30/255, 144/255, 255/255, 0.6])
+#     h, w = mask.shape[-2:]
+#     mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+#     ax.imshow(mask_image)
     
-def show_points(coords, labels, ax, marker_size=375):
-    pos_points = coords[labels==1]
-    neg_points = coords[labels==0]
-    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
-    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)   
+# def show_points(coords, labels, ax, marker_size=375):
+#     pos_points = coords[labels==1]
+#     neg_points = coords[labels==0]
+#     ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+#     ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)   
     
-def show_box(box, ax):
-    x0, y0 = box[0], box[1]
-    w, h = box[2] - box[0], box[3] - box[1]
-    ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green', facecolor=(0,0,0,0), lw=2))   
+# def show_box(box, ax):
+#     x0, y0 = box[0], box[1]
+#     w, h = box[2] - box[0], box[3] - box[1]
+#     ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green', facecolor=(0,0,0,0), lw=2))   
 
-def sam_and_save_mask(image_path, output_path, input_box, input_point):
-    input_box = np.array(input_box)
+# def sam_and_save_mask(image_path, output_path, input_box, input_point):
+#     input_box = np.array(input_box)
 
-    # Read and preprocess the image
-    image_array = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-    predictor.set_image(image_array)
+#     # Read and preprocess the image
+#     image_array = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+#     predictor.set_image(image_array)
 
-    # Define the input point and label
-    input_point = np.array([input_point])
-    input_label = np.array([1])
+#     # Define the input point and label
+#     input_point = np.array([input_point])
+#     input_label = np.array([1])
 
-    # Point input
-    # Predict the mask
-    # masks, scores, logits = predictor.predict(
-    #     point_coords=input_point,
-    #     point_labels=input_label,
-    #     multimask_output=True,
-    # )
+#     # Point input
+#     # Predict the mask
+#     # masks, scores, logits = predictor.predict(
+#     #     point_coords=input_point,
+#     #     point_labels=input_label,
+#     #     multimask_output=True,
+#     # )
 
-    # bbox input
-    masks, _, _ = predictor.predict(
-        point_coords=input_point,
-        point_labels=input_label,
-        box=input_box,
-        multimask_output=False,
-    )
+#     # bbox input
+#     masks, _, _ = predictor.predict(
+#         point_coords=input_point,
+#         point_labels=input_label,
+#         box=input_box,
+#         multimask_output=False,
+#     )
 
-    best_mask = masks[0]
-    best_mask = (best_mask * 255).astype(np.uint8)
+#     best_mask = masks[0]
+#     best_mask = (best_mask * 255).astype(np.uint8)
 
-    # Save the mask as an image
-    cv2.imwrite(output_path, best_mask)
+#     # Save the mask as an image
+#     cv2.imwrite(output_path, best_mask)
 
-    #DEBUG
-    if(DEBUG):
-        plt.figure(figsize=(10, 10))
-        plt.imshow(image_array)
-        show_mask(best_mask, plt.gca())
-        show_box(input_box, plt.gca())
-        show_points(input_point, input_label, plt.gca())
-        plt.axis('off')
-        plt.savefig("tmp.png")
-        plt.clf()
+#     #DEBUG
+#     if(DEBUG):
+#         plt.figure(figsize=(10, 10))
+#         plt.imshow(image_array)
+#         show_mask(best_mask, plt.gca())
+#         show_box(input_box, plt.gca())
+#         show_points(input_point, input_label, plt.gca())
+#         plt.axis('off')
+#         plt.savefig("tmp.png")
+#         plt.clf()
 
-    area = np.sum(best_mask)
-    return area
+#     area = np.sum(best_mask)
+#     return area
 
 import numpy as np
 from scipy.interpolate import interp1d
