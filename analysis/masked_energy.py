@@ -129,7 +129,7 @@ def energy_doc(timestamp_info, timestamp, mask_area, kinetic_sum, thermal_sum, t
         timestamp_info[timestamp]['heating'] += heating
         timestamp_info[timestamp]['cooling'] += cooling
     
-    print(timestamp_info[timestamp])
+    # print(timestamp_info[timestamp])
     return timestamp_info
 
 def plot_energy(timestamp_info, timestamps, output_root):
@@ -171,11 +171,11 @@ def plot_energy(timestamp_info, timestamps, output_root):
     
     
     
-    ax2 = ax1.twinx()
+    ax2 = ax1#.twinx()
     ax2.plot(time_Myr, heating_values, label = 'Heating (erg)', color = 'lightblue')   #red, tomato
     ax2.plot(time_Myr, cooling_values, label = 'Cooling (erg)', color = 'xkcd:azure')  #powerblue
     # ax2.plot(timestamps, E_sn, label = "E_sn", color = "red")
-    ax2.plot(time_Myr, np.abs(heating_values - cooling_values ), label = "H - C + E_sn", color = "xkcd:blue")
+    ax2.plot(time_Myr, np.abs(heating_values - cooling_values ), label = "H - C", color = "xkcd:blue")
     ax2.set_yscale('log')
     ax2.set_ylabel('heating and cooling (erg)')
     
