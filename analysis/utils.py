@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import torch
+#import torch
 # from segment_anything import sam_model_registry, SamPredictor
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
