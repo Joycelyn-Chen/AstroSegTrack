@@ -182,3 +182,9 @@ cython_debug/
 # checkpoint weights
 *.pth 
 */*.pth 
+
+# numpy array zip file
+*.npz
+*/*.npz
+*/*/*.npz
+*/*/*/*.npz
