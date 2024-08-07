@@ -23,7 +23,7 @@ def associate_slices_within_cube(start_z, end_z, image_paths, mask, dataset_root
 
         for label in range(2, num_labels):
             current_mask = labels == label
-            if compute_iou(current_mask, tmp_mask) >= 0.6:      # if found a match in this slice
+            if compute_iou(current_mask, tmp_mask) >= 0.4:      # if found a match in this slice
                 tmp_mask = current_mask
                 mask_dir_root = ensure_dir(os.path.join(dataset_root, f'SN_cases_{date}', f"SN_{SN_timestamp}{i}", str(timestamp)))
                 mask_name = f"{image_path.split('/')[-1].split('.')[-2]}.png"     

@@ -225,3 +225,6 @@ def read_dat_log(dat_file_root, dataset_root):
     all_data.sort_values(by='time_Myr', inplace=True)
 
     return all_data
+
+def pc2pix_256(pc):
+    return int(pc * (256 / 1000))

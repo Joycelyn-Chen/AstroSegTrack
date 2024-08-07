@@ -17,8 +17,8 @@ from utils import *
 # elephant
 hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
 
-start_timestamp = 212
-end_timestamp = 230
+start_timestamp = 206
+end_timestamp = 233
 
 for timestamp in range(start_timestamp, end_timestamp, 1):
     # timestamp = 211
@@ -137,7 +137,8 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
     # each saved mask update the corresponding mask z slice
 
     # read all the png files within the mask folder for current timestamp
-    mask_root = f"/home/joy0921/Desktop/Dataset/VOS_output/astro_0219/SN_20915_{timestamp}"
+    # mask_root = f"/home/joy0921/Desktop/Dataset/VOS_output/astro_0219/SN_20915_{timestamp}"
+    mask_root = f"/home/joy0921/Desktop/Dataset/Isolated_case/SN_20617/{timestamp}"
     mask_files = [file for file in os.walk(mask_root)][0][2]
 
     for mask_file in mask_files:
