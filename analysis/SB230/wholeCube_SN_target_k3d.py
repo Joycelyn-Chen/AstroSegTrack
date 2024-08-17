@@ -18,7 +18,7 @@ from utils import *
 hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
 
 start_timestamp = 206
-end_timestamp = 233
+end_timestamp = 207
 
 for timestamp in range(start_timestamp, end_timestamp, 1):
     # timestamp = 211
@@ -99,9 +99,11 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
     for current_z in range(upper_b - lower_b):
         dens_slice = normalize4thresholding(dens_cube[:, :, current_z + lower_b]) 
 
-        # cv2.imwrite(f"tmp/dens_{current_z}.png", dens_slice)
+        if(DEBUG):
+            cv2.imwrite(f"tmp/dens_{current_z}.jpg", dens_slice)
         # dens_img = cv2.imread(f"tmp/dens_{current_z}.png")
         
+'''        
         # threshold + connected component
         binary_mask = apply_otsus_thresholding(dens_slice)
         num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
@@ -213,3 +215,5 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
 
     if(DEBUG):
         print("Done. Plot file stored at {}".format(f'k3d_html/{time_Myr}.html'))
+
+        '''
