@@ -1,36 +1,53 @@
 import cv2
 import os
-import glob
+# import glob
+import argparse
 
-input_root = '/home/joy0921/Desktop/XMEM/astro-davis/test-dev/JPEGImages'  # Set this to your root directory
-output_root = '/home/joy0921/Desktop/Dataset/movies'
+DEBUG = True
+
+parser = argparse.ArgumentParser(
+                    prog='jog2mp4',
+                    description='This code takes a folder of images and convert them into a single mp4 movie to the designated location',
+                    epilog='Input: path to image folder, output movie filename and path')
+
+
+parser.add_argument('-i', '--input_folder') 
+parser.add_argument('-o', '--output_file')  
+
+args = parser.parse_args()
+
+# Provide the path to the input image folder, output video file, and desired FPS
+input_folder = args.input_folder
+output_file = args.output_file
 fps = 24  # Frames per second
 
-def create_video_from_images(image_folder, output_video_file):
-    images = [img for img in sorted(glob.glob(f"{image_folder}/*.jpg"))]  # Add more extensions if needed
-    if not images:
-        print(f"No images found in the folder {image_folder}. Skipping...")
-        return
+def convert_images_to_video(input_folder, output_file, fps):
+    # Get the list of image files in the input folder
+    image_files = sorted([f for f in os.listdir(input_folder) if f.endswith('.jpg') or f.endswith('.png')])
+    sorted_files = sorted(image_files, key=lambda x: int(os.path.splitext(x)[0]))
 
-    # Get dimensions of the first image
-    frame = cv2.imread(images[0])
-    height, width, layers = frame.shape
-    size = (width, height)
+    # Read the first image to get its dimensions
+    first_image = cv2.imread(os.path.join(input_folder, sorted_files[0]))
+    height, width, _ = first_image.shape
 
-    # Initialize the video writer
-    out = cv2.VideoWriter(output_video_file, cv2.VideoWriter_fourcc(*'mp4v'), fps, size)
+    # Create a VideoWriter object to save the video
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Specify the codec for the output video file
+    video = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
 
-    for image in images:
-        frame = cv2.imread(image)
-        out.write(frame)  # Write the frame to the video
+    # Iterate over each image and write it to the video
+    for image_file in sorted_files:
+        if (DEBUG):
+            print(image_file)
+        image_path = os.path.join(input_folder, image_file)
+        frame = cv2.imread(image_path)
+        video.write(frame)
 
-    out.release()  # Release the VideoWriter object
-
-# Traverse the root directory and process each folder
-for subdir, dirs, files in os.walk(input_root):
-    for dir in dirs:
-        folder_path = os.path.join(subdir, dir)
-        video_file = os.path.join(output_root, f"{dir}.mp4")  # Output video file name
-        create_video_from_images(folder_path, video_file)
+    # Release the video writer and close the video file
+    video.release()
+    cv2.destroyAllWindows()
 
 print("Video creation completed.")
+
+
+# Call the function to convert the images to video
+convert_images_to_video(input_folder, output_file, fps)
