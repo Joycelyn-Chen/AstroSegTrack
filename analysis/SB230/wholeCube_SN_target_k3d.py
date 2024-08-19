@@ -103,7 +103,7 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
             cv2.imwrite(f"tmp/dens_{current_z}.jpg", dens_slice)
         # dens_img = cv2.imread(f"tmp/dens_{current_z}.png")
         
-'''        
+        
         # threshold + connected component
         binary_mask = apply_otsus_thresholding(dens_slice)
         num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
@@ -140,7 +140,7 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
 
     # read all the png files within the mask folder for current timestamp
     # mask_root = f"/home/joy0921/Desktop/Dataset/VOS_output/astro_0219/SN_20915_{timestamp}"
-    mask_root = f"/home/joy0921/Desktop/Dataset/Isolated_case/SN_20617/{timestamp}"
+    mask_root = f"/home/joy0921/Desktop/Dataset/img_pix256/masks/{timestamp}"
     mask_files = [file for file in os.walk(mask_root)][0][2]
 
     for mask_file in mask_files:
@@ -156,7 +156,8 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
                 mask_slice = mask_slice / 255
                 # _, mask_slice = cv.threshold(mask_slice, 0, 1, cv.THRESH_BINARY)
             
-            z_coord = int(pc2pix_256(int(mask_file.split(".")[0].split("_")[-1][1:])))
+            # z_coord = int(pc2pix_256(int(mask_file.split(".")[0].split("_")[-1][1:])))
+            z_coord = int(mask_file.split('.')[0])
             
             # then store to mask array
             mask_target[:, :, z_coord] = mask_slice
@@ -216,4 +217,4 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
     if(DEBUG):
         print("Done. Plot file stored at {}".format(f'k3d_html/{time_Myr}.html'))
 
-        '''
+        
