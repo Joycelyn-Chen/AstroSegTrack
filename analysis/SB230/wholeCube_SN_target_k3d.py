@@ -11,145 +11,58 @@ from k3d import matplotlib_color_maps
 import cv2 as cv
 
 from utils import *
+import argparse
 
 
-# Initialization
-# elephant
-hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
+DEBUG = True
+hdf5_prefix = 'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0'
+low_x0, low_y0, low_w, low_h, bottom_z, top_z = 0, 0, 1000, 1000, 0, 1000
+range_coord = [low_x0, low_y0, low_w, low_h, bottom_z, top_z]
 
-start_timestamp = 206
-end_timestamp = 235
-
-for timestamp in range(start_timestamp, end_timestamp, 1):
-    # timestamp = 211
-    time_Myr = timestamp2Myr(timestamp) 
-
-    DEBUG = True
-    # Inputting the raw HDF5 file
-
-    if(DEBUG):
-        print("Reading raw HDF5 input...")
-
-    ds = yt.load(os.path.join(hdf5_root, 'sn34_smd132_bx5_pe300_hdf5_plt_cnt_0{}'.format(timestamp)))
-
-    center = [0, 0, 0] * yt.units.pc
-    arb_center = ds.arr(center, 'code_length')
-    xlim = 256
-    ylim = 256
-    zlim= 256
-    left_edge = arb_center + ds.quan(-500, 'pc')
-    right_edge = arb_center + ds.quan(500, 'pc')
-    obj = ds.arbitrary_grid(left_edge, right_edge, dims=(256,256,256))
-
-    if(DEBUG):
-        print("getting velz and dens, waiting for spec...")
-
-    # retrieve the center (256, 256, 256) grid
-    x_range_scaled = (0, 256) 
-    y_range_scaled = (0, 256)  
-    z_range_scaled = (0, 256)
-
-    center_x, center_y, center_z = 128, 128, 128
-
-    velz_cube, dens_cube, temp_cube = get_velz_dens(obj, x_range_scaled, y_range_scaled, z_range_scaled)
-    # new_velx, new_vely = get_velx_vely(obj, x_range_scaled, y_range_scaled, z_range_scaled)
-
-    # Reading all the SN within the last Myr
-    filename = "SNfeedback.dat"
-
-    all_data = read_SNfeedback(hdf5_root=hdf5_root, filename=filename)
-
-    low_x0, low_y0, low_w, low_h, bottom_z, top_z = 0, 0, 1000, 1000, 0, 1000
-    range_coord = [low_x0, low_y0, low_w, low_h, bottom_z, top_z]
-
-    start_Myr = time_Myr - 0.1
-    end_yr = time_Myr
-
-    if(DEBUG):
-        print("filtering SNs...")
-
-    # Filter data based on specified conditions
-    filtered_data = all_data[(all_data['time_Myr'] >= start_Myr) & (all_data['time_Myr'] <= end_yr)]
-    # filtered_data = filter_data(all_data[(all_data['time_Myr'] >= start_Myr) & (all_data['time_Myr'] <= end_yr)],
-                                # (low_x0, low_y0, low_w, low_h, bottom_z, top_z))
-
-    if(DEBUG):
-        print("here's the SN cases")
-        print(filtered_data)
-
+def update_pos_pix256(filtered_data):
     converted_points = list(zip(
         pc2pix_256(filtered_data['posx_pc']) + 128,
         pc2pix_256(filtered_data['posy_pc']) + 128,
         pc2pix_256(filtered_data['posz_pc']) + 128
     ))
+    # Converting the list of tuples into separate lists
+    posx_pix256, posy_pix256, posz_pix256 = zip(*converted_points)
 
-    if(DEBUG):
-        print(converted_points)
-        print("now generating masks for whole cube...")
+    # Adding the new columns to the DataFrame
+    filtered_data['posx_pix256'] = posx_pix256
+    filtered_data['posy_pix256'] = posy_pix256
+    filtered_data['posz_pix256'] = posz_pix256
 
-    # process all bubbles in the entire cube
-    # read density slice
-    lower_b = 0
-    upper_b = 256
-    cube_size = 256
-    input_point = (center_x, center_y)
-    mask_cube = np.zeros((cube_size, cube_size, upper_b - lower_b))
-    dilated_stack = np.zeros((cube_size, cube_size, upper_b - lower_b))
+    return converted_points, filtered_data
 
-    for current_z in range(upper_b - lower_b):
-        dens_slice = normalize4thresholding(dens_cube[:, :, current_z + lower_b]) 
-
-        if(DEBUG):
-            cv2.imwrite(f"/home/joy0921/Desktop/Dataset/img_pix256/img/{timestamp}/{current_z}.jpg", dens_slice)
-        # dens_img = cv2.imread(f"tmp/dens_{current_z}.png")
-        
+def segment_cube_roi(args, dens_cube, mask_cube):
+    for current_z in range(args.upper_bound - args.lower_bound):
+        dens_slice = normalize4thresholding(dens_cube[:, :, current_z + args.lower_bound]) 
         
         # threshold + connected component
         binary_mask = apply_otsus_thresholding(dens_slice)
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+        _, labels, _, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
 
         # retrieve all mask only
         i = 0
-        x, y, w, h, area = stats[i]
         binary_mask = labels == i
         binary_mask = ~binary_mask
         mask_cube[:, :, current_z] = binary_mask
-        # binary_mask = binary_mask * 255
 
+    return mask_cube
 
-
-    # cast the ring of mask over velz and dens array, plot out the velocity profile, with integrated density as a function of velz  
-    velz_cube_roi = np.where(mask_cube, velz_cube[:, :, lower_b:upper_b], np.nan)
-    dens_cube_roi = np.where(mask_cube, dens_cube[:, :, lower_b:upper_b], np.nan)
-
-    if(DEBUG):
-        print("Done")
-        print("reading the target blob masks...")
-
-    # Read all the masks slices into a 3D mask array
-
-
-    # lower_b = 0
-    # upper_b = 255
-    # cube_size = 256
-    mask_target = np.zeros((cube_size, cube_size, upper_b - lower_b))
-
-    # TODO: If there's coord mismatch could be from here
-    # TODO: read all slices from each timestamp from the saved output masks, stored them in "mask"
-    # each saved mask update the corresponding mask z slice
-
+def segment_target_roi(args, mask_target, timestamp):
     # read all the png files within the mask folder for current timestamp
-    # mask_root = f"/home/joy0921/Desktop/Dataset/VOS_output/astro_0219/SN_20915_{timestamp}"
-    mask_root = f"/home/joy0921/Desktop/Dataset/img_pix256/masks/{timestamp}"
-    mask_files = [file for file in os.walk(mask_root)][0][2]
+    mask_dir = os.path.join(args.mask_root, f"{timestamp}")  
+    mask_files = [file for file in os.walk(mask_dir)][0][2]
 
     for mask_file in mask_files:
         if mask_file.endswith(".png"):  # only consider png files
-            mask_slice = cv.imread(os.path.join(mask_root, mask_file), cv.IMREAD_GRAYSCALE)
+            mask_slice = cv.imread(os.path.join(mask_dir, mask_file), cv.IMREAD_GRAYSCALE)
             
             # resize the mask_slice if it's not in size (256, 256)
-            if mask_slice.shape!= (cube_size, cube_size):
-                mask_slice = cv.resize(mask_slice[:, :], (cube_size, cube_size))
+            if mask_slice.shape!= (args.pixel_boundary, args.pixel_boundary):
+                mask_slice = cv.resize(mask_slice[:, :], (args.pixel_boundary, args.pixel_boundary))
             
             # check if the mask_slice is a binary array or not, convert to binary if not
             if mask_slice.max() > 1:
@@ -161,33 +74,26 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
             
             # then store to mask array
             mask_target[:, :, z_coord] = mask_slice
+    
+    return mask_target
 
 
-    if(DEBUG):
-        print("Done")
-        print("Now generating the k3d plot for all...")
+def saving_k3d_plots(args, time_Myr, dens_cube_roi, dens_target_roi, converted_points):
+    coords_whole_cube = np.argwhere(~np.isnan(dens_cube_roi))
+    coords_target = np.argwhere(~np.isnan(dens_target_roi))
 
-    # velz_roi = np.where(mask, velz_cube[:, :, lower_b:upper_b], np.nan)
-    dens_cube_roi = np.where(mask_cube, dens_cube[:, :, lower_b:upper_b], np.nan)
-    dens_target_roi = np.where(mask_target, dens_cube[:, :, lower_b:upper_b], np.nan)
+    values_whole_cube = np.log10(dens_cube_roi[coords_whole_cube[:, 0], coords_whole_cube[:, 1], coords_whole_cube[:, 2]])
+    values_target = np.log10(dens_target_roi[coords_target[:, 0], coords_target[:, 1], coords_target[:, 2]])
 
-    # Visualize in 3D using k3d
-
-    whole_cube_coords = np.argwhere(~np.isnan(dens_cube_roi))
-    target_coords = np.argwhere(~np.isnan(dens_target_roi))
-
-    values_cube = np.log10(dens_cube_roi[whole_cube_coords[:, 0], whole_cube_coords[:, 1], whole_cube_coords[:, 2]])
-    values_target = np.log10(dens_target_roi[target_coords[:, 0], target_coords[:, 1], target_coords[:, 2]])
-
-    cube_points = k3d.points(positions=whole_cube_coords,
+    cube_points = k3d.points(positions=coords_whole_cube,
                             point_size=0.5,
                             shader='3d',
                             opacity=0.2,
                             color_map=matplotlib_color_maps.Viridis,
-                            attribute=values_cube,
+                            attribute=values_whole_cube,
                             ) # color=0x3f6bc5
 
-    target_points = k3d.points(positions=target_coords,
+    target_points = k3d.points(positions=coords_target,
                             point_size=0.8,
                             shader='3d',
                             opacity=1.0,
@@ -211,10 +117,116 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
 
     # plot.display()
 
-    with open(f'/home/joy0921/Desktop/Dataset/img_pix256/k3d_html/{time_Myr}.html','w') as fp:
+    
+    with open(os.path.join(args.k3d_root, f'{time_Myr}.html'),'w') as fp:
         fp.write(plot.get_snapshot())
 
     if(DEBUG):
-        print("Done. Plot file stored at {}".format(f'k3d_html/{time_Myr}.html'))
+        print("Done. Plot file stored at {}".format(f'{args.k3d_root}/{time_Myr}.html'))
+
+
+def saving_SN_in_bound(args, time_Myr, filtered_data, mask_target):
+    # record the SN in bounds
+    # Open a text file to write the results
+    
+    # Loop through each row in filtered_data
+    for _, row_data in filtered_data.iterrows():
+        # Step 1: Read the 'posz_pix256' field
+        posz_pix256 = int(row_data['posz_pix256'])
+        
+        # Step 2: Access the z slice in 3D array dens_target_roi
+        if(args.lower_bound <= posz_pix256 <= args.upper_bound):
+            mask = mask_target[:, :, posz_pix256]
+        
+        # Step 3: Read 'posx_pix256' and 'posy_pix256' values as (x, y) coordinates
+        posx_pix256 = int(row_data['posx_pix256'])
+        posy_pix256 = int(row_data['posy_pix256'])
 
         
+        # Step 4: Verify if the (x, y) value in the binary mask is white (value == 255)
+        if mask[posy_pix256, posx_pix256] != 0:
+            # Step 5: Output this row data into a .txt file
+            with open(os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt"), 'w') as f:
+                f.write(f'{row_data.to_dict()}\n')
+
+
+
+def main(args):
+    for timestamp in range(args.start_timestamp, args.end_timestamp, args.incr):
+        # Caculate the current time in Myr
+        time_Myr = timestamp2Myr(timestamp) 
+
+        # Input HDF5 raw data
+        ds = yt.load(os.path.join(args.hdf5_root, '{}{}'.format(hdf5_prefix, timestamp)))
+
+        center = [0, 0, 0] * yt.units.pc
+        arb_center = ds.arr(center, 'code_length')
+        xlim, ylim, zlim = args.pixel_boundary, args.pixel_boundary, args.pixel_boundary
+        left_edge = arb_center + ds.quan(-500, 'pc')
+        right_edge = arb_center + ds.quan(500, 'pc')
+        obj = ds.arbitrary_grid(left_edge, right_edge, dims=(xlim,ylim,zlim))
+
+        # retrieve the center (256, 256, 256) grid
+        x_range_scaled = (args.lower_bound, args.upper_bound) 
+        y_range_scaled = (args.lower_bound, args.upper_bound)  
+        z_range_scaled = (args.lower_bound, args.upper_bound)
+
+        # center_x, center_y, center_z = args.pixel_boundary // 2, args.pixel_boundary // 2, args.pixel_boundary // 2
+        velz_cube, dens_cube, temp_cube = get_velz_dens(obj, x_range_scaled, y_range_scaled, z_range_scaled)
+        # new_velx, new_vely = get_velx_vely(obj, x_range_scaled, y_range_scaled, z_range_scaled)
+
+        # Reading all the SN within the last Myr
+        all_data = read_SNfeedback(hdf5_root=args.hdf5_root, filename=args.dat_filename)
+
+        start_Myr, end_Myr = time_Myr - (0.1 * args.incr), time_Myr
+        # Filter data based on specified conditions
+        filtered_data = all_data[(all_data['time_Myr'] >= start_Myr) & (all_data['time_Myr'] <= end_Myr)]
+
+        converted_points, filtered_data = update_pos_pix256(filtered_data)
+
+        # process all bubbles in the entire cube
+        
+        mask_cube = np.zeros((args.pixel_boundary, args.pixel_boundary, args.upper_bound - args.lower_bound))
+        mask_cube = segment_cube_roi(args, dens_cube, mask_cube)
+
+        # velz_cube_roi = np.where(mask_cube, velz_cube[:, :, args.lower_bound:args.upper_bound], np.nan)
+        dens_cube_roi = np.where(mask_cube, dens_cube[:, :, args.lower_bound:args.upper_bound], np.nan)
+
+        # Read all the masks slices into a 3D mask array
+        mask_target = np.zeros((args.pixel_boundary, args.pixel_boundary, args.upper_bound - args.lower_bound))
+        mask_target = segment_target_roi(args, mask_target, timestamp)
+
+        # velz_roi = np.where(mask, velz_cube[:, :, lower_b:upper_b], np.nan)
+        dens_target_roi = np.where(mask_target, dens_cube[:, :, args.lower_bound:args.upper_bound], np.nan)
+        # velz_target_roi = np.where(mask_target, velz_cube[:, :, args.lower_bound:args.upper_bound], np.nan)
+
+        # Visualize in 3D using k3d
+        saving_k3d_plots(args, time_Myr, dens_cube_roi, dens_target_roi, converted_points)
+
+        # Record SN in bound
+        saving_SN_in_bound(args, time_Myr, filtered_data, mask_target)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                    prog='wholeCube_SN_target_k3d.py',
+                    description='Model the low density area for the entire cube, label the SN, and point out the target bubble',
+                    epilog='Contact Joycelyn if you dont understand')
+    
+    parser.add_argument('-hr', '--hdf5_root', help='Input the root path to where hdf5 files are stored.')       #  "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
+    parser.add_argument('-m', '--mask_root', help='Input the root path to where mask files are stored.')        # '/home/joy0921/Desktop/Dataset/img_pix256/masks'
+    parser.add_argument('-st', '--start_timestamp', help='Input the starting timestamp', type = int)                        # 206
+    parser.add_argument('-et', '--end_timestamp', help='Input the ending timestamp', type = int)                            # 235
+    parser.add_argument('-i', '--incr', help='The timestamp increment unit', default = 1, type = int)
+    parser.add_argument('-df', '--dat_filename', help='Input the .dat filename', default="SNfeedback.dat")                              
+    parser.add_argument('-pixb', '--pixel_boundary', help='Input the pixel resolution', default = 256, type = int)
+    parser.add_argument('-lb', '--lower_bound', help='The lower bound for the cube.', default = 0, type = int)
+    parser.add_argument('-up', '--upper_bound', help='The upper bound for the cube.', default = 256, type = int)
+    parser.add_argument('-k', '--k3d_root', help='Input the root path to where the k3d plots should be stored')                # '/home/joy0921/Desktop/Dataset/img_pix256/k3d_html'
+    # parser.add_argument('-', '--', help='')
+
+    args = parser.parse_args()
+
+    main(args)
+
+# python -h "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc" -m '/home/joy0921/Desktop/Dataset/img_pix256/masks' -st 206 -et 207 -k '/home/joy0921/Desktop/Dataset/img_pix256/k3d_html'
