@@ -18,7 +18,7 @@ from utils import *
 hdf5_root = "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc"
 
 start_timestamp = 206
-end_timestamp = 207
+end_timestamp = 235
 
 for timestamp in range(start_timestamp, end_timestamp, 1):
     # timestamp = 211
@@ -62,8 +62,8 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
     low_x0, low_y0, low_w, low_h, bottom_z, top_z = 0, 0, 1000, 1000, 0, 1000
     range_coord = [low_x0, low_y0, low_w, low_h, bottom_z, top_z]
 
-    start_Myr = time_Myr - 1
-    end_yr = start_Myr + 1
+    start_Myr = time_Myr - 0.1
+    end_yr = time_Myr
 
     if(DEBUG):
         print("filtering SNs...")
@@ -100,7 +100,7 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
         dens_slice = normalize4thresholding(dens_cube[:, :, current_z + lower_b]) 
 
         if(DEBUG):
-            cv2.imwrite(f"tmp/dens_{current_z}.jpg", dens_slice)
+            cv2.imwrite(f"/home/joy0921/Desktop/Dataset/img_pix256/img/{timestamp}/{current_z}.jpg", dens_slice)
         # dens_img = cv2.imread(f"tmp/dens_{current_z}.png")
         
         
@@ -211,7 +211,7 @@ for timestamp in range(start_timestamp, end_timestamp, 1):
 
     # plot.display()
 
-    with open(f'k3d_html/{time_Myr}.html','w') as fp:
+    with open(f'/home/joy0921/Desktop/Dataset/img_pix256/k3d_html/{time_Myr}.html','w') as fp:
         fp.write(plot.get_snapshot())
 
     if(DEBUG):
