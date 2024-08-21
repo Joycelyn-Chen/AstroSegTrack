@@ -136,8 +136,10 @@ def saving_SN_in_bound(args, time_Myr, filtered_data, mask_target):
         posz_pix256 = int(row_data['posz_pix256'])
         
         # Step 2: Access the z slice in 3D array dens_target_roi
-        if(args.lower_bound <= posz_pix256 <= args.upper_bound):
+        if(args.lower_bound <= posz_pix256 < args.upper_bound):
             mask = mask_target[:, :, posz_pix256]
+        else:
+            continue
         
         # Step 3: Read 'posx_pix256' and 'posy_pix256' values as (x, y) coordinates
         posx_pix256 = int(row_data['posx_pix256'])
@@ -149,10 +151,11 @@ def saving_SN_in_bound(args, time_Myr, filtered_data, mask_target):
             # Step 5: Output this row data into a .txt file
             temp_df = pd.concat([temp_df, pd.DataFrame([row_data])], ignore_index=True)
 
-    output_file = os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt")
-    temp_df.to_csv(output_file, index=False, sep='\t')  
-    # with open(os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt"), 'w') as f:
-    #     f.write(f'{row_data.to_dict()}\n')
+    if(not temp_df.empty):
+        output_file = os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt")
+        temp_df.to_csv(output_file, index=False, sep='\t')  
+        # with open(os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt"), 'w') as f:
+        #     f.write(f'{row_data.to_dict()}\n')
 
 
 
@@ -229,7 +232,7 @@ if __name__ == '__main__':
     parser.add_argument('-up', '--upper_bound', help='The upper bound for the cube.', default = 256, type = int)
     parser.add_argument('-k', '--k3d_root', help='Input the root path to where the k3d plots should be stored')                # '/home/joy0921/Desktop/Dataset/img_pix256/k3d_html'
     # parser.add_argument('-', '--', help='')
-
+ 
     args = parser.parse_args()
 
     main(args)
