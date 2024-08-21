@@ -12,7 +12,7 @@ def ensure_dir(path):
 def get_velz_dens(obj, x_range, y_range, z_range):
     # read a 3D grid of velz and density array
     velz = obj["flash", "velz"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('km/s').value        
-    dens = obj["flash", "dens"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('g/cm**3').value.T[::]        
+    dens = obj["flash", "dens"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('g/cm**3').value        
     temp = obj["flash", "temp"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('K').value 
 
     print(f"obj.shape: {obj['flash', 'velz'].shape}")
@@ -32,12 +32,13 @@ def pix_256_2pc(pix_256):
     return pix_256 * (1000 / 256)
 
 def main(args):
-    print(f"start: {args.start_timestamp}")
-    for i in range(args.start_timestamp, args.end_timestamp, args.offset):
-        if (i < 1000):
-            filename = f"{args.file_prefix}0{i}"
+    for timestamp in range(args.start_timestamp, args.end_timestamp, args.offset):
+        if (timestamp < 1000):
+            filename = f"{args.file_prefix}0{timestamp}"
         else:
-            filename = f"{args.file_prefix}{i}"
+            filename = f"{args.file_prefix}{timestamp}"
+
+        print(f"Processing timestamp: {timestamp}")
 
         # loading img data
         ds = yt.load(os.path.join(args.hdf5_root, filename))
@@ -60,7 +61,7 @@ def main(args):
             normalizedImg = ((img - np.min(img)) / (np.max(img) - np.min(img)) ) * 255 
 
 
-            cv.imwrite(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(i))), f'{filename}_z{dens_z}{args.extension}'), normalizedImg)
+            cv.imwrite(os.path.join(ensure_dir(os.path.join(args.output_root_dir, str(timestamp))), f'{dens_z}{args.extension}'), normalizedImg)
             
             
 if __name__ == "__main__":
@@ -79,4 +80,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(args)
 
-# python hdf5tojpg.py --hdf5_root "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc" --output_root_dir "/home/joy0921/Desktop/Dataset/raw_img_pix256" --start_timestamp 206 --end_timestamp 240
+# python hdf5tojpg.py --hdf5_root "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc" --output_root_dir "/home/joy0921/Desktop/Dataset/img_pix256/img/SB230" --start_timestamp 380 --end_timestamp 750 --offset 10

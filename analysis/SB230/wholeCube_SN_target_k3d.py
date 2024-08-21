@@ -128,7 +128,8 @@ def saving_k3d_plots(args, time_Myr, dens_cube_roi, dens_target_roi, converted_p
 def saving_SN_in_bound(args, time_Myr, filtered_data, mask_target):
     # record the SN in bounds
     # Open a text file to write the results
-    
+    temp_df = pd.DataFrame(columns=filtered_data.columns)
+
     # Loop through each row in filtered_data
     for _, row_data in filtered_data.iterrows():
         # Step 1: Read the 'posz_pix256' field
@@ -146,8 +147,12 @@ def saving_SN_in_bound(args, time_Myr, filtered_data, mask_target):
         # Step 4: Verify if the (x, y) value in the binary mask is white (value == 255)
         if mask[posy_pix256, posx_pix256] != 0:
             # Step 5: Output this row data into a .txt file
-            with open(os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt"), 'w') as f:
-                f.write(f'{row_data.to_dict()}\n')
+            temp_df = pd.concat([temp_df, pd.DataFrame([row_data])], ignore_index=True)
+
+    output_file = os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt")
+    temp_df.to_csv(output_file, index=False, sep='\t')  
+    # with open(os.path.join(args.k3d_root, f"SN_{time_Myr}_info.txt"), 'w') as f:
+    #     f.write(f'{row_data.to_dict()}\n')
 
 
 
