@@ -9,12 +9,17 @@ def count_white_pixels(image_path):
         # Convert image to grayscale and count pixels with a value of 255
         return sum(pixel == 255 for pixel in img.convert('L').getdata())
 
+def timestamp2Myr(timestamp):
+    return (timestamp - 200) * 0.1 + 191
+
 def process_timestamps(root_dir):
     volume_dic = {}
 
     # 1. Loop through all timestamps
     for timestamp in sorted(os.listdir(root_dir)):
         if not os.path.isdir(os.path.join(root_dir, timestamp)):
+            continue
+        if(int(timestamp) < 300):
             continue
         #DEBUG
         print(f"Processing {timestamp}")
@@ -39,12 +44,12 @@ def plot_results(volume_dic, output_root):
     # Sort the dictionary by timestamp to ensure the plot is in order
     sorted_timestamps = sorted(volume_dic.keys())[:-1]
     volumes = [int(volume_dic[timestamp]) for timestamp in sorted_timestamps]
-    sorted_timestamps = [int(timestamp) for timestamp in sorted_timestamps]
+    sorted_timeMyrs = [timestamp2Myr(int(timestamp)) for timestamp in sorted_timestamps]
 
     # plt.figure(figsize=(10, 6))
-    plt.plot(sorted_timestamps, volumes, 'bo-')
+    plt.plot(sorted_timeMyrs, volumes, 'bo-')
     plt.xlabel('Time (Myr)')
-    plt.ylabel('Accumulated Volume (pc^3)')
+    plt.ylabel('Accumulated Volume (pix^3)')
     plt.title('Volume Evolution')
     plt.xticks(rotation=45)
     # plt.tight_layout()
