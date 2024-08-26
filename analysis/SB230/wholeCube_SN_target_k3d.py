@@ -188,7 +188,7 @@ def main(args):
 
         start_Myr, end_Myr = time_Myr - (0.1 * args.incr), time_Myr
         # Filter data based on specified conditions
-        filtered_data = all_data[(all_data['time_Myr'] >= start_Myr) & (all_data['time_Myr'] <= end_Myr)]
+        filtered_data = filter_data(all_data[(all_data['time_Myr'] >= start_Myr) & (all_data['time_Myr'] <= end_Myr)], range_coord=(-500, -500, 1000, 1000, -500, 500)) 
 
         converted_points, filtered_data = update_pos_pix256(filtered_data)
 
