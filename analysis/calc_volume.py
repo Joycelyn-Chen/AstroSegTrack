@@ -50,7 +50,7 @@ def plot_results(volume_dic, output_root):
     plt.plot(sorted_timeMyrs, volumes, 'bo-')
     plt.xlabel('Time (Myr)')
     plt.ylabel('Accumulated Volume (pix^3)')
-    plt.title('Volume Evolution')
+    # plt.title('Volume Evolution')
     plt.xticks(rotation=45)
     # plt.tight_layout()
     
