@@ -65,7 +65,7 @@ def trace_first_timestamp(timestamp, image_paths, filtered_data, output_root):
         center_slice_z = pc2pixel(posz_pc, x_y_z = "z")
 
         anchor_img = read_image_grayscale(image_paths[center_slice_z])
-        binary_image = apply_otsus_thresholding(anchor_img)
+        binary_image, thres_T = apply_otsus_thresholding(anchor_img)
         num_labels, labels, stats, centroids = find_connected_components(binary_image)
 
         for i in range(2, num_labels):     

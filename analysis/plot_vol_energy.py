@@ -21,46 +21,109 @@ def count_white_pixels(image_path):
         # Convert image to grayscale and count pixels with a value of 255
         return sum(pixel == 255 for pixel in img.convert('L').getdata())
 
+def erg_to_joule(energy_erg):
+    """
+    Convert energy from erg to Joules.
+    
+    Parameters:
+    energy_erg (array-like): Energy values in ergs.
+    
+    Returns:
+    array-like: Energy values in Joules.
+    """
 
-def plot_energy_vol(timeMyrs, kinetic_energies, thermal_energies, total_energies, total_volumes, output_root):
+    return np.array(energy_erg) * 1e-7
+
+
+# def plot_energy_vol(timeMyrs, kinetic_energies, thermal_energies, total_energies, total_volumes, output_root):
+#     fig, ax1 = plt.subplots(figsize=(12, 8))
+    
+#     # Plotting with improved aesthetics
+#     ax1.plot(timeMyrs, kinetic_energies, label='Kinetic Energy (erg)', color='#6A9C89', linestyle='dotted', linewidth=2, marker='o')
+#     ax1.plot(timeMyrs, thermal_energies, label='Thermal Energy (erg)', color='#E1D7B7', linestyle='dotted', linewidth=2, marker='o')
+#     ax1.plot(timeMyrs, total_energies, label='Total Energy (erg)', color='#CD5C08', linestyle='solid', linewidth=2.5, marker='o')
+    
+    
+    
+#     # Logarithmic scale for the y-axis
+#     ax1.set_yscale('log')
+    
+#     # Adding labels and title
+#     ax1.set_xlabel('Time (Myr)', fontsize=14)
+#     ax1.set_ylabel('Energy (erg)', fontsize=14, color='black')
+#     # plt.title('Energy vs. Time', fontsize=16)
+#     ax1.tick_params(axis='y', labelcolor='black')
+
+
+#     ax2 = ax1.twinx()
+#     ax2.plot(timeMyrs, total_volumes, label='Total Volume ($pc^3$)', color='#DDB665', linestyle='solid', linewidth=2.5, marker='*')
+#     ax2.set_ylabel('Volume ($pc^3$)', fontsize=14, color='black')
+#     ax2.tick_params(axis='y', labelcolor='black')
+
+#     # Adding grid for better readability
+#     ax1.grid(True, which="both", linestyle='--', linewidth=0.5, color='gray')
+    
+#     # Customizing the legend
+#     # plt.legend(fontsize=12, loc='best', frameon=True, fancybox=True, shadow=True)
+#     lines, labels = ax1.get_legend_handles_labels()
+#     lines2, labels2 = ax2.get_legend_handles_labels()
+#     ax1.legend(lines + lines2, labels + labels2, fontsize=12, loc='best', frameon=True, fancybox=True, shadow=True)
+
+#     # Adjusting layout for better spacing
+#     plt.tight_layout()
+    
+#     # Save the figure to the specified output root
+#     plt.savefig(os.path.join(output_root, 'energy_volume.png'), dpi=300)
+
+def plot_energy_volume(timeMyrs, kinetic_energies, thermal_energies, total_energies, total_volumes, output_root):
+    # Convert energies to Joules
+    kinetic_energies_joule = erg_to_joule(kinetic_energies)
+    thermal_energies_joule = erg_to_joule(thermal_energies)
+    total_energies_joule = erg_to_joule(total_energies)
+    
     fig, ax1 = plt.subplots(figsize=(12, 8))
     
-    # Plotting with improved aesthetics
-    ax1.plot(timeMyrs, kinetic_energies, label='Kinetic Energy (erg)', color='#6A9C89', linestyle='dotted', linewidth=2, marker='o')
-    ax1.plot(timeMyrs, thermal_energies, label='Thermal Energy (erg)', color='#E1D7B7', linestyle='dotted', linewidth=2, marker='o')
-    ax1.plot(timeMyrs, total_energies, label='Total Energy (erg)', color='#CD5C08', linestyle='solid', linewidth=2.5, marker='o')
+    # Plotting energy data in Joules    
+    ax1.plot(timeMyrs, kinetic_energies_joule, label='Kinetic Energy (J)', color='#7b7d7b', linestyle='dotted', linewidth=2, marker='o')    # #6A9C89
+    ax1.plot(timeMyrs, thermal_energies_joule, label='Thermal Energy (J)', color='#969696', linestyle='dashed', linewidth=2, marker='o')    # #E1D7B7
+    ax1.plot(timeMyrs, total_energies_joule, label='Total Energy (J)', color='#000000', linestyle='solid', linewidth=2.5, marker='o')  # #CD5C08
     
-    
-    
-    # Logarithmic scale for the y-axis
+    # supernovae energy injection
+    one_hot_explosion = [0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1]
+    E_sn = [num * 1e44 for num in one_hot_explosion]
+    ax1.plot(timeMyrs, E_sn, 'r+') 
+
+    # Set logarithmic scale for the y-axis
     ax1.set_yscale('log')
     
     # Adding labels and title
-    ax1.set_xlabel('Time (Myr)', fontsize=14)
-    ax1.set_ylabel('Energy (erg)', fontsize=14, color='black')
-    # plt.title('Energy vs. Time', fontsize=16)
+    ax1.set_xlabel('Time (Myr)', fontsize=18)
+    ax1.set_ylabel('Energy (J)', fontsize=18, color='black')
     ax1.tick_params(axis='y', labelcolor='black')
-
-
+    
     ax2 = ax1.twinx()
-    ax2.plot(timeMyrs, total_volumes, label='Total Volume ($pc^3$)', color='#DDB665', linestyle='solid', linewidth=2.5, marker='*')
-    ax2.set_ylabel('Volume ($pc^3$)', fontsize=14, color='black')
-    ax2.tick_params(axis='y', labelcolor='black')
-
+    ax2.plot(timeMyrs, total_volumes, label='Total Volume ($pc^3$)', color='#CD5C08', linestyle='solid', linewidth=2.5, marker='o') # #DDB665
+    
+    # Set logarithmic scale and color for the volume axis
+    ax2.set_yscale('log')
+    ax2.set_ylabel('Volume ($pc^3$)', fontsize=18, color='#CD5C08')
+    ax2.tick_params(axis='y', labelcolor='#CD5C08')
+    
     # Adding grid for better readability
     ax1.grid(True, which="both", linestyle='--', linewidth=0.5, color='gray')
     
     # Customizing the legend
-    # plt.legend(fontsize=12, loc='best', frameon=True, fancybox=True, shadow=True)
     lines, labels = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines + lines2, labels + labels2, fontsize=12, loc='best', frameon=True, fancybox=True, shadow=True)
 
+    
     # Adjusting layout for better spacing
     plt.tight_layout()
     
     # Save the figure to the specified output root
     plt.savefig(os.path.join(output_root, 'energy_volume.png'), dpi=300)
+
 
 
 def calc_energy_vol(args, hdf5_filename, root_dir, timestamp):
@@ -134,14 +197,14 @@ def main(args):
     kinetic_energies = [energy_data[timestamp]['kinetic_energy'] for timestamp in timestamps]
     thermal_energies = [energy_data[timestamp]['thermal_energy'] for timestamp in timestamps]
     total_energies = [energy_data[timestamp]['total_energy'] for timestamp in timestamps]
-    total_volumes = [energy_data[timestamp]['volume'] * ((1000/256) ** 3) for timestamp in timestamps]
+    total_volumes = [energy_data[timestamp]['volume'] * ((1000/256) ** 3) for timestamp in timestamps]          # converting volume from pixels to pc^3
 
     # filter out only the valid reading and convert timestamps to Myr
     filtered_keys = [key for key in energy_data.keys() if energy_data[key]['volume'] != 0]
     timeMyrs = [timestamp2time_Myr(x) for x in filtered_keys]
     # timeMyrs = [timestamp2time_Myr(x) for x in list(energy_data.keys())] 
 
-    plot_energy_vol(timeMyrs, kinetic_energies, thermal_energies, total_energies, total_volumes, args.output_root)
+    plot_energy_volume(timeMyrs, kinetic_energies, thermal_energies, total_energies, total_volumes, args.output_root)
 
     # Accumulated total energy
     print(f"Accumulated Kinetic Energy: {sum(kinetic_energies)} erg")
