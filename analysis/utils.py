@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 #import torch
 # from segment_anything import sam_model_registry, SamPredictor
+import yt
 
 low_x0, low_y0, low_w, low_h, bottom_z, top_z = -500, -500, 1000, 1000, -500, 500
 DEBUG = True
@@ -355,3 +356,22 @@ class PiecewisePowerlaw:
                                (x1 ** (self.powers[highi] + 1.) - self.limits[highi] ** (self.powers[highi] + 1.))
             integral.flat[i] = highintegral + insideintegral + lowintegral
         return integral
+
+def get_velz_dens(obj, x_range, y_range, z_range):
+    # read a 3D grid of velz and density array
+    velz = obj["flash", "velz"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('km/s').value        
+    dens = obj["flash", "dens"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('g/cm**3').value        
+    temp = obj["flash", "temp"][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('K').value 
+
+    print(f"obj.shape: {obj['flash', 'velz'].shape}")
+    print("x, y, z ranges: ", x_range, y_range, z_range)
+    print(f"velz.shape: {velz.shape}\tdens.shape: {dens.shape}\n\n")      
+     
+
+    dz = obj['flash', 'dz'][x_range[0] : x_range[1], y_range[0] : y_range[1], z_range[0] : z_range[1]].to('cm').value
+    mp = yt.physical_constants.mp.value # proton mass
+
+    # calculate the density as column density
+    coldens = dens * dz / (1.4 * mp)
+
+    return velz, coldens, temp
