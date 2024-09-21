@@ -237,4 +237,4 @@ if __name__ == '__main__':
 
     main(args)
 
-# python -h "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc" -m '/home/joy0921/Desktop/Dataset/img_pix256/masks' -st 206 -et 207 -k '/home/joy0921/Desktop/Dataset/img_pix256/k3d_html'
+# python analysis/SB230/wholeCube_SN_target_k3d.py -h "/srv/data/stratbox_simulations/stratbox_particle_runs/bx5/smd132/sn34/pe300/4pc_resume/4pc" -m '/home/joy0921/Desktop/Dataset/img_pix256/masks' -st 206 -et 207 -k '/home/joy0921/Desktop/Dataset/img_pix256/k3d_html'
