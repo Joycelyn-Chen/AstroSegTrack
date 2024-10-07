@@ -31,7 +31,7 @@ def threshold_connected(args, img_arr):
     
 
 def read_instance_label(args, timestamp):
-    inst_label_arr = np.full((args.pixel_boundary, args.pixel_boundary, args.pixel_boundary), -100, dtype=np.int32)  # Initialize with -100 for background
+    inst_label_arr = np.full((args.pixel_boundary, args.pixel_boundary, args.pixel_boundary), 0, dtype=np.int32)  # Initialize with -100 for background
         
     instance_folders = sorted(os.listdir(args.mask_root))
     
@@ -44,6 +44,8 @@ def read_instance_label(args, timestamp):
             if os.path.exists(mask_path):
                 mask_slice = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
                 inst_label_arr[:, :, z][mask_slice > 0] = label  # Assign label to non-zero pixels
+                if(DEBUG):
+                    print(f"labels: {inst_label_arr[:, :, z]}")
     return inst_label_arr
 
 def save2txt(args, timestamp, mask_arr, img_arr, inst_label_arr):
@@ -55,16 +57,17 @@ def save2txt(args, timestamp, mask_arr, img_arr, inst_label_arr):
         for z in range(args.pixel_boundary):
             for y in range(args.pixel_boundary):
                 for x in range(args.pixel_boundary):
-                    if mask_arr[y, x, z]:  # Check if the point is part of the connected component
-                        # (x, y, z) coordinates
-                        coords = (x, y, z)
+                    if mask_arr[x, y, z]:  # Check if the point is part of the connected component
                         
                         # Get intensity value from img_arr at (x, y, z) and use it as RGB (r, g, b)
-                        intensity = img_arr[y, x, z]
+                        intensity = img_arr[x, y, z]
                         r = g = b = intensity
                         
                         # Get instance label from inst_label_arr
-                        inst_label = inst_label_arr[y, x, z]
+                        inst_label = inst_label_arr[x, y, z]
+
+                        # if(DEBUG):
+                            # print(f"Instance label: {inst_label}")
                         
                         # Set semantic label based on instance label
                         if inst_label < 50:
