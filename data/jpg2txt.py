@@ -121,4 +121,5 @@ if __name__ == "__main__":
 
     
 
+# this program read the image stacks as input and output txt file to be converted to point cloud dataset. (stpls3d format)
 # python /home/joy0921/Desktop/Dataset/MHD-3DIS/masks
