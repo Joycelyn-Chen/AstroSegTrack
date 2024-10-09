@@ -31,11 +31,11 @@ def threshold_connected(args, img_arr):
     
 
 def read_instance_label(args, timestamp):
-    inst_label_arr = np.full((args.pixel_boundary, args.pixel_boundary, args.pixel_boundary), 0, dtype=np.int32)  # Initialize with -100 for background
+    inst_label_arr = np.full((args.pixel_boundary, args.pixel_boundary, args.pixel_boundary), -1, dtype=np.int32)  # Initialize with -100 for background
         
     instance_folders = sorted(os.listdir(args.mask_root))
     
-    for label, inst_folder in enumerate(instance_folders, start=1):
+    for label, inst_folder in enumerate(instance_folders):          # , start=1
         # Each instance folder corresponds to an object and contains 256 slices
         if not os.path.exists(os.path.join(args.mask_root, inst_folder, str(timestamp))):
             continue
@@ -43,9 +43,8 @@ def read_instance_label(args, timestamp):
             mask_path = os.path.join(args.mask_root, inst_folder, str(timestamp), f'{z}.png')
             if os.path.exists(mask_path):
                 mask_slice = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-                inst_label_arr[:, :, z][mask_slice > 0] = label  # Assign label to non-zero pixels
-                if(DEBUG):
-                    print(f"labels: {inst_label_arr[:, :, z]}")
+                inst_label_arr[:, :, z][mask_slice > 0] = int(inst_folder) #label  # Assign label to non-zero pixels
+                
     return inst_label_arr
 
 def save2txt(args, timestamp, mask_arr, img_arr, inst_label_arr):
@@ -65,15 +64,12 @@ def save2txt(args, timestamp, mask_arr, img_arr, inst_label_arr):
                         
                         # Get instance label from inst_label_arr
                         inst_label = inst_label_arr[x, y, z]
-
-                        # if(DEBUG):
-                            # print(f"Instance label: {inst_label}")
                         
                         # Set semantic label based on instance label
                         if inst_label < 50:
-                            sem_label = 0  # Category 0
+                            sem_label = 0  # Category 0 - small bubbles
                         else:
-                            sem_label = 1  # Category 1
+                            sem_label = 1  # Category big bubbles
                         
                         # Step 6: Write the point to the output file
                         f.write(f"{x},{y},{z},{r},{g},{b},{sem_label},{inst_label}\n")
@@ -82,7 +78,6 @@ def save2txt(args, timestamp, mask_arr, img_arr, inst_label_arr):
 
 
 def main(args):
-
     for timestamp in range(args.start_timestamp, args.end_timestamp + 1, args.incr):    # Iterate through all timestamps in the image root folder
         if(DEBUG):
             print(f"Processing time: {timestamp}")
