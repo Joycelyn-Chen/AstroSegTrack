@@ -7,7 +7,7 @@ import argparse
 import cv2
 import open3d as o3d
 
-DEBUG = False
+DEBUG = True
 
 
 def apply_otsus_thresholding(image, threshold = 120, height = 100):
@@ -21,7 +21,7 @@ def apply_otsus_thresholding(image, threshold = 120, height = 100):
     if (DEBUG):
         print(f"temperature threshold: {THESHOLD}")  
 
-    return cv2.bitwise_not(binary_image)
+    return binary_image # cv2.bitwise_not(binary_image)
 
 def within_range(min, max, target):
     if min < target and max > target:
@@ -168,6 +168,8 @@ def main(args):
         
         if(DEBUG):
             print(f"Done processing time: {time_Myr}. ply file stored at: {args.ply_root}/{time_Myr}.ply")
+            print(pooled_coords[0])
+            
 
 
 

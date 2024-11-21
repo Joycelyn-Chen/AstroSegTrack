@@ -15,7 +15,7 @@ def filter_ply(input_file, output_file, x_range, y_range, z_range):
         # Read point data
         data = []
         for line in f:
-            values = line.strip().split(",")
+            values = line.strip().split(" ")
             x, y, z = map(float, values[:3])
             r, g, b = map(int, values[3:])
             data.append((x, y, z, r, g, b))
@@ -39,7 +39,7 @@ def filter_ply(input_file, output_file, x_range, y_range, z_range):
 
         # Write filtered points
         for point in filtered_data:
-            f.write(f"{point['x']},{point['y']},{point['z']},{point['r']},{point['g']},{point['b']}\n")
+            f.write(f"{point['x']} {point['y']} {point['z']} {point['r']} {point['g']} {point['b']}\n")
 
 
 if __name__ == "__main__":
@@ -47,12 +47,12 @@ if __name__ == "__main__":
     parser.add_argument("--input_ply", help="The input ply to be modified")          # 
     parser.add_argument("--output_ply", help="The output ply filename")
     parser.add_argument("--data_root", help="The dataset path root")
-    parser.add_argument("--x1", help="lower x", default=100, type=int)
-    parser.add_argument("--x2", help="upper x", default=170, type=int)
-    parser.add_argument("--y1", help="lower y", default=140, type=int)
-    parser.add_argument("--y2", help="upper y", default=200, type=int)
-    parser.add_argument("--z1", help="lower z", default=100, type=int)
-    parser.add_argument("--z2", help="upper z", default=170, type=int)
+    parser.add_argument("--x1", help="lower x", default=150, type=int)
+    parser.add_argument("--x2", help="upper x", default=200, type=int)
+    parser.add_argument("--y1", help="lower y", default=210, type=int)
+    parser.add_argument("--y2", help="upper y", default=250, type=int)
+    parser.add_argument("--z1", help="lower z", default=120, type=int)
+    parser.add_argument("--z2", help="upper z", default=160, type=int)
     
   
     args = parser.parse_args()
@@ -63,4 +63,4 @@ if __name__ == "__main__":
 
     filter_ply(os.path.join(args.data_root, args.input_ply), os.path.join(args.data_root, args.output_ply), x_range, y_range, z_range)
 
-    # python filter_ply.py --input_ply "380.ply" --output_ply "380_cube.ply" --data_root /home/joycelyn/Desktop/3DIS/Point-SAM/demo/static/models   
+    # python filter_ply.py --input_ply "209.ply" --output_ply "209_cube.ply" --data_root /UBC-O/joy0921/Desktop/Dataset/MHD-3DIS/plys  /home/joycelyn/Desktop/3DIS/Point-SAM/demo/static/models   

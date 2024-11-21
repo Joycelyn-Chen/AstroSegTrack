@@ -10,6 +10,7 @@ import argparse
 axis_table = {"x": 0, "y" : 1, "z" : 2}
 axis_table_target = {"z": 0, "y" : 2, "x" : 1}
 
+DEBUG = False
 
 def get_velz_dens(obj, x_range, y_range, z_range):
     # read a 3D grid of velz and density array
@@ -49,13 +50,19 @@ def read_target_density(args, mask_dir, timestamp, dens_cube):
     for SN_id in os.listdir(mask_dir):
         print(f"Processing case: {SN_id} for time: {timestamp}")
         # check if path exists
-        if(not os.path.exists(os.path.join(mask_dir, SN_id, str(timestamp)))):
+        # if(not os.path.exists(os.path.join(mask_dir, SN_id, str(timestamp)))):
+        if(not os.path.exists(os.path.join(mask_dir, SN_id))):
             continue
 
         for z in range(args.pixel_boundary):
-            mask_path = os.path.join(mask_dir, SN_id, str(timestamp), f"{z}.png")
+            mask_path = os.path.join(mask_dir, SN_id, f"{z}.png")
             # Load the mask image and convert to a binary mask (1 for the region of interest, 0 otherwise)
             mask_img = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)  #.convert('L')
+            
+            if(DEBUG):
+                print(f"mask path: {mask_path}")
+                print(f"np.max(mask_img): {np.max(mask_img)}\n\n")
+
             
             if(args.dilate):
                 kernel = np.ones((2, 2), np.uint8) 
@@ -95,7 +102,7 @@ def save_projection_plot(args, dens_cube, density_target, time_Myr):
         filename = f"{time_Myr}_z"
         if args.draw_contour:
             ax.contour(projection_target.T) #, level = [17e20], color = 'black')
-            filename = f"{time_Myr}_zc"
+            filename = f"{time_Myr}_zc_full"
         ax.plot(149,177, 'x:r')
         ax.set_xlabel('X-pix')
         ax.set_ylabel('Y-pix') 
@@ -105,7 +112,7 @@ def save_projection_plot(args, dens_cube, density_target, time_Myr):
         filename = f"{time_Myr}_y"
         if args.draw_contour:
             ax.contour(projection_target) #, level = [17e20], color = 'black')
-            filename = f"{time_Myr}_yc"
+            filename = f"{time_Myr}_yc_full"
         ax.plot(149,141, 'x:r')
         ax.set_xlabel('X-pix')
         ax.set_ylabel('Z-pix')
@@ -115,7 +122,7 @@ def save_projection_plot(args, dens_cube, density_target, time_Myr):
         filename = f"{time_Myr}_x"
         if args.draw_contour:
             ax.contour(projection_target) #, level = [17e20], color = 'black')
-            filename = f"{time_Myr}_xc"
+            filename = f"{time_Myr}_xc_full"
         ax.plot(177,141, 'x:r')
         ax.set_xlabel('Y-pix')
         ax.set_ylabel('Z-pix')
@@ -123,13 +130,7 @@ def save_projection_plot(args, dens_cube, density_target, time_Myr):
 
     fig.colorbar(im, label='Column Density (log) ($g/cm^3$)')
     
-    
-    
-    
     ax.set_title('Column Density (Cube)')
-    
-    # plt.show()
-
     
     fig.savefig(os.path.join(args.pplot_root, f'{filename}.png'))
     print("Projection plot file save as: ", os.path.join(args.pplot_root, f'{filename}.png'))
@@ -137,7 +138,6 @@ def save_projection_plot(args, dens_cube, density_target, time_Myr):
 
 
 def main(args):
-
     for timestamp in range(args.start_timestamp, args.end_timestamp + args.incr, args.incr):
         time_Myr = timestamp2time_Myr(timestamp)
         # obj = read_dataset(args, time_Myr)
@@ -153,7 +153,6 @@ def main(args):
         # Load the density array 
         dens_cube = get_velz_dens(obj, (0, args.pixel_boundary), (0, args.pixel_boundary), (0, args.pixel_boundary))
         # Path to masks directory
-        # mask_dir = os.path.join(args.mask_root, str(time_Myr2timestamp(time_Myr)))
         
         density_target = read_target_density(args, args.mask_root, str(time_Myr2timestamp(time_Myr)), dens_cube)
 
